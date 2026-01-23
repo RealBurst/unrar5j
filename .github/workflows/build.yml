@@ -1,0 +1,38 @@
+name: Build JAR
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 8
+      uses: actions/setup-java@v4
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+    
+    - name: Compile
+      run: |
+        mkdir -p bin
+        find src -name "*.java" | xargs javac -d bin
+    
+    - name: Create JAR
+      run: |
+        echo "Manifest-Version: 1.0" > MANIFEST.MF
+        echo "Main-Class: be.stef.rar5.Rar5j" >> MANIFEST.MF
+        echo "" >> MANIFEST.MF
+        jar cfm rar5j.jar MANIFEST.MF -C bin .
+    
+    - name: Upload JAR
+      uses: actions/upload-artifact@v4
+      with:
+        name: rar5j
+        path: rar5j.jar
