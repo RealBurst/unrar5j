@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2025 Stephane Bury
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ import java.util.Arrays;
  * <p>This decoder supports up to 15-bit codes (RAR5 standard) and uses a
  * two-level decoding strategy:</p>
  * <ul>
- *   <li><b>Fast path:</b> Short codes (≤ fastLookupBits) use direct table lookup - O(1)</li>
+ *   <li><b>Fast path:</b> Short codes (â‰¤ fastLookupBits) use direct table lookup - O(1)</li>
  *   <li><b>Slow path:</b> Long codes use threshold search to find code length</li>
  * </ul>
  * 
@@ -182,7 +182,7 @@ public class Rar5HuffmanDecoder {
     /**
      * Decodes a symbol from the bit stream.
      * 
-     * <p>Uses fast table lookup for short codes (≤ fastLookupBits) and
+     * <p>Uses fast table lookup for short codes (â‰¤ fastLookupBits) and
      * threshold-based search for longer codes.</p>
      * 
      * @param bitStream the bit stream to read from

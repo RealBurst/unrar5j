@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2025 Stephane Bury
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,8 @@ import java.io.RandomAccessFile;
  * 
  * <p>Example: Value 300 (0x12C) is encoded as [0xAC, 0x02]</p>
  * <ul>
- *   <li>0xAC = 10101100 → continuation=1, data=0101100 (44)</li>
- *   <li>0x02 = 00000010 → continuation=0, data=0000010 (2)</li>
+ *   <li>0xAC = 10101100 â†’ continuation=1, data=0101100 (44)</li>
+ *   <li>0x02 = 00000010 â†’ continuation=0, data=0000010 (2)</li>
  *   <li>Result: (2 &lt;&lt; 7) | 44 = 256 + 44 = 300</li>
  * </ul>
  * 

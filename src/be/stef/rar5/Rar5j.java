@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Copyright 2025 Stephane Bury
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -461,7 +461,7 @@ public class Rar5j {
                return true;
            }
 
-           // Toutes les autres méthodes de compression 1 => 5
+           // Toutes les autres mÃ©thodes de compression 1 => 5
            if (sharedDecoder == null) {
                sharedDecoder = new Rar5LZDecoder();
            }
@@ -554,8 +554,8 @@ public class Rar5j {
        System.out.println("  _ _ __ _ _ _| __| (_)");
        System.out.println(" | '_/ _` | '_|__ \\ | |");
        System.out.println(" |_| \\__,_|_| |___//__|  v2026.01.23");
-//       System.out.println(" v1.0 - Stéphane BURY - Apache 2.0");
-       System.out.println("  Stéphane BURY - Apache 2.0");
+//       System.out.println(" v1.0 - StÃ©phane BURY - Apache 2.0");
+       System.out.println("  StÃ©phane BURY - Apache 2.0");
        System.out.println();
     }
     
@@ -571,7 +571,7 @@ public class Rar5j {
       
       SimpleDateFormat df = new SimpleDateFormat("dd/MM:ss - HH:mm:ss");
       Date start = new Date();
-      System.out.println("Démarrage de la décryption et décompression at "+df.format(start)+" ...");
+      System.out.println("DÃ©marrage de la dÃ©cryption et dÃ©compression at "+df.format(start)+" ...");
 
       pathBuilder = new SafePathBuilder(new File(outputDir));
      
@@ -579,8 +579,8 @@ public class Rar5j {
       result.print();
      
       Date fin = new Date();
-      System.out.println("Fin de la décryption et décompression at "+df.format(fin)+" ...");
-      System.out.println("Durée totale "+df.format(new Date(fin.getTime()-start.getTime())));
+      System.out.println("Fin de la dÃ©cryption et dÃ©compression at "+df.format(fin)+" ...");
+      System.out.println("DurÃ©e totale "+df.format(new Date(fin.getTime()-start.getTime())));
     }
 
 

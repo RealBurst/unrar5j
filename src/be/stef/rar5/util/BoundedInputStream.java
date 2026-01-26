@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Copyright 2025 Stephane Bury
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 
 /**
- * InputStream qui limite la lecture à une portion spécifique d'un RandomAccessFile.
+ * InputStream qui limite la lecture Ã  une portion spÃ©cifique d'un RandomAccessFile.
  */
 public class BoundedInputStream extends InputStream {
     private final RandomAccessFile file;

@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Copyright 2025 Stephane Bury
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * OutputStream qui affiche la progression sur la même ligne.
+ * OutputStream qui affiche la progression sur la mÃªme ligne.
  */
 public class ProgressOutputStream extends FilterOutputStream {
     private final long totalSize;
@@ -71,15 +71,15 @@ public class ProgressOutputStream extends FilterOutputStream {
         }
         bar.append("]");
         
-        // \r revient au début de la ligne
+        // \r revient au dÃ©but de la ligne
         System.out.printf("\r%s %s %3d%% (%s)", bar, formatSize(bytesWritten), percent, truncateFileName(fileName, 30));
     }
     
     /**
-     * Appelé à la fin pour passer à la ligne suivante.
+     * AppelÃ© Ã  la fin pour passer Ã  la ligne suivante.
      */
     public void finish() {
-        System.out.println(); // Nouvelle ligne après complétion
+        System.out.println(); // Nouvelle ligne aprÃ¨s complÃ©tion
     }
     
     private static String formatSize(long bytes) {

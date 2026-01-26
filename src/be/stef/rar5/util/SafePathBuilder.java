@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Copyright 2025 Stephane Bury
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,13 +44,13 @@ public class SafePathBuilder {
         this.baseDir = outputDirectory;
         if (!baseDir.exists()) baseDir.mkdirs();
         
-        // --- DÉTECTION PHYSIQUE DU SYSTÈME DE FICHIERS ---
+        // --- DÃ‰TECTION PHYSIQUE DU SYSTÃˆME DE FICHIERS ---
         this.isCaseSensitiveFS = detectCaseSensitivity(outputDirectory);
 //        System.out.println("  [FS INFO] Case-Sensitive FS: " + this.isCaseSensitiveFS);
     }
 
     /**
-     * Teste réellement si le disque cible est sensible à la casse.
+     * Teste rÃ©ellement si le disque cible est sensible Ã  la casse.
      */
     private boolean detectCaseSensitivity(File dir) {
         try {
@@ -59,14 +59,14 @@ public class SafePathBuilder {
             Files.delete(testFile);
             return sensitive;
         } catch (IOException e) {
-            // Repli sur une détection par OS si le test échoue
+            // Repli sur une dÃ©tection par OS si le test Ã©choue
             String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
             return !(os.contains("win") || os.contains("mac"));
         }
     }
 
     public File buildSafePath(String originalPath) throws IOException {
-        // Normalisation et sécurisation du chemin
+        // Normalisation et sÃ©curisation du chemin
         String normalized = originalPath.replace("\\", "/"); 
         Path p = Paths.get(normalized);
         Path safePath = Paths.get("");
@@ -87,7 +87,7 @@ public class SafePathBuilder {
     }
 
     private String sanitizeComponent(String name) {
-        // 1. Caractères interdits
+        // 1. CaractÃ¨res interdits
         String clean = ILLEGAL_CHARS.matcher(name).replaceAll("_");
         
         // 2. Nettoyage points/espaces finaux (critique pour Windows)
@@ -124,7 +124,7 @@ public class SafePathBuilder {
         String checkKey = getCollisionKey(finalFile);
 
         // La boucle tourne tant qu'on a une collision "logique" (notre session) 
-        // ou "physique" (le fichier est déjà sur le disque)
+        // ou "physique" (le fichier est dÃ©jÃ  sur le disque)
         while (writtenPaths.contains(checkKey) || finalFile.exists()) {
             String newName = baseName + "_" + counter + extension;
             finalFile = new File(parent, newName);
