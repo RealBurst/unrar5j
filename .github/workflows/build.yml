@@ -23,7 +23,7 @@ jobs:
       run: |
         mkdir -p bin
         find src -name "*.java" | xargs javac -d bin
-         
+    
     - name: Create JAR
       run: |
         echo "Manifest-Version: 1.0" > MANIFEST.MF
@@ -31,8 +31,14 @@ jobs:
         echo "" >> MANIFEST.MF
         jar cfm rar5j.jar MANIFEST.MF -C bin .
     
-    - name: Upload JAR
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: rar5j
         path: rar5j.jar
+    
+    - name: Upload to release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: rar5j.jar
