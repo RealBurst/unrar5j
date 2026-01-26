@@ -5,8 +5,8 @@ A pure Java RAR5 extractor with no native dependencies.
 ```
                ___
   _ _ __ _ _ _| __| (_)
- | '_/ _` | '_|__ \\ | |
- |_| \\__,_|_| |___//__| 
+ | '_/ _` | '_|__ \ | |
+ |_| \__,_|_| |___//__| 
 ```
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
