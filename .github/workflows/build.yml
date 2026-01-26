@@ -22,8 +22,8 @@ jobs:
     - name: Compile
       run: |
         mkdir -p bin
-        find src -name "*.java" | xargs javac -encoding Cp1252 -d bin
- 
+        find src -name "*.java" | xargs javac -d bin
+         
     - name: Create JAR
       run: |
         echo "Manifest-Version: 1.0" > MANIFEST.MF
