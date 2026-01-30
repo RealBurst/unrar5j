@@ -70,7 +70,7 @@ import be.stef.rar5.util.VIntReader;
  * @author Stef
  * @since 1.0
  */
-public class Rar5j {
+public class Unrar5j {
     private static Rar5LZDecoder sharedDecoder = null;
     public static boolean showProgress = true;    
     public static boolean isEncryptedArchive;
@@ -549,20 +549,28 @@ public class Rar5j {
     }
 
     
-    private static void printBanner() {
+    private static void printBannerOld() {
        System.out.println("               ___");
        System.out.println("  _ _ __ _ _ _| __| (_)");
        System.out.println(" | '_/ _` | '_|__ \\ | |");
        System.out.println(" |_| \\__,_|_| |___//__|  v2026.01.23");
-//       System.out.println(" v1.0 - Stéphane BURY - Apache 2.0");
        System.out.println("  Stéphane BURY - Apache 2.0");
+       System.out.println();
+    }
+    
+    private static void printBanner() {
+       System.out.println("                          ___");
+       System.out.println("  _  _ _ _  _ _ __ _ _ _| __| (_)");
+       System.out.println(" | || | ' \\| '_/ _` | '_|__ \\ | |");
+       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v2026.01.23");
+       System.out.println("    Stéphane BURY - Apache 2.0");
        System.out.println();
     }
     
     public static void main(String[] args) {
       printBanner();
       if (args.length < 2) {
-          System.out.println("Usage: java Rar5j <archive.rar> <outputDir> [password]");
+          System.out.println("Usage: java Unrar5j <archive.rar> <outputDir> [password]");
           return;
       }
       String archivePath = args[0];

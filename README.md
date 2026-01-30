@@ -1,12 +1,13 @@
-# rar5j
+# unrar5j
 
 A pure Java RAR5 extractor with no native dependencies.
 
 ```
-               ___
-  _ _ __ _ _ _| __| (_)
- | '_/ _` | '_|__ \ | |
- |_| \__,_|_| |___//__| 
+                         ___
+  _  _ _ _  _ _ __ _ _ _| __| (_)
+ | || | ' \| '_/ _` | '_|__ \ | |
+ \__,_|_|_||_| \__,_|_| |___//__|
+
 ```
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -31,24 +32,24 @@ A pure Java RAR5 extractor with no native dependencies.
 ## Command Line Usage
 
 ```bash
-java -jar rar5j.jar <archive.rar> <output_directory> [password]
+java -jar unrar5j.jar <archive.rar> <output_directory> [password]
 ```
 
 ### Examples
 
 ```bash
 # Extract archive
-java -jar rar5j.jar myarchive.rar ./output
+java -jar unrar5j.jar myarchive.rar ./output
 
 # Extract encrypted archive
-java -jar rar5j.jar encrypted.rar ./output mysecretpassword
+java -jar unrar5j.jar encrypted.rar ./output mysecretpassword
 ```
 
 ### Linux/macOS
 
 ```bash
-chmod +x rar5j
-./rar5j myarchive.rar ./output
+chmod +x unrar5j
+./unrar5j myarchive.rar ./output
 ```
 
 ## Library Usage
@@ -56,18 +57,18 @@ chmod +x rar5j
 ### Extract an archive
 
 ```java
-import be.stef.rar5.Rar5j;
+import be.stef.rar5.Unrar5j;
 import be.stef.rar5.ExtractionResult;
 
 // Extract without password
-ExtractionResult result = Rar5j.extract(
+ExtractionResult result = Unrar5j.extract(
     "archive.rar",
     "output_directory",
     null
 );
 
 // Extract with password
-ExtractionResult result = Rar5j.extract(
+ExtractionResult result = Unrar5j.extract(
     "encrypted.rar",
     "output_directory",
     "mypassword"
@@ -116,44 +117,6 @@ for (Rar5FileBlock file : reader.getFileBlocks()) {
 | BLAKE2 hash verification | ❌ |
 | RAR4 format | ❌ |
 
-## Project Structure
-
-```
-be.stef.rar5
-├── Rar5j               # Main class & extraction API
-├── Rar5Reader          # Archive structure parser
-├── Rar5Constants       # Format constants
-├── ExtractionResult    # Extraction results
-│
-├── blocks/             # Block type parsers
-│   ├── Rar5Block
-│   ├── Rar5FileBlock
-│   ├── Rar5MainArchiveBlock
-│   ├── Rar5ServiceBlock
-│   ├── Rar5EncryptionBlock
-│   └── Rar5EndBlock
-│
-├── crypto/             # Encryption handling
-│   └── Rar5Crypto
-│
-├── decompress/         # Decompression engine
-│   ├── Rar5LZDecoder
-│   ├── Rar5HuffmanDecoder
-│   ├── Rar5BitDecoder
-│   └── Rar5Filter
-│
-├── extra/              # Extra record parsers
-│   ├── Rar5ExtraCrypto
-│   ├── Rar5ExtraHash
-│   ├── Rar5ExtraTime
-│   ├── Rar5ExtraLink
-│   └── Rar5ExtraVersion
-│
-└── util/               # Utilities
-    ├── VInt
-    ├── VIntReader
-    └── SafePathBuilder
-```
 
 ## Building
 
@@ -162,7 +125,7 @@ be.stef.rar5
 javac -d bin src/be/stef/rar5/*.java src/be/stef/rar5/**/*.java
 
 # Create JAR
-jar cfe rar5j.jar be.stef.rar5.Rar5j -C bin .
+jar cfe unrar5j.jar be.stef.rar5.Unrar5j -C bin .
 ```
 
 ## License
