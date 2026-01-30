@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: be.stef.rar5.Rar5j
+Main-Class: be.stef.rar5.Unrar5j
 

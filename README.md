@@ -32,24 +32,28 @@ A pure Java RAR5 extractor with no native dependencies.
 ## Command Line Usage
 
 ```bash
-java -jar unrar5j.jar <archive.rar> <output_directory> [password]
+java -jar unrar5j.jar myarchive.rar [-o outputDir] [-p password]
 ```
 
 ### Examples
 
 ```bash
 # Extract archive
-java -jar unrar5j.jar myarchive.rar ./output
+java -jar unrar5j.jar myarchive.rar -o ./output
 
 # Extract encrypted archive
-java -jar unrar5j.jar encrypted.rar ./output mysecretpassword
+java -jar unrar5j.jar encrypted.rar -p mysecretpassword
+
+# Both options
+java -jar unrar5j.jar encrypted.rar -o ./output -p mysecretpassword
 ```
 
 ### Linux/macOS
 
 ```bash
 chmod +x unrar5j
-./unrar5j myarchive.rar ./output
+./unrar5j myarchive.rar -o ./output
+./unrar5j encrypted.rar -p mysecretpassword
 ```
 
 ## Library Usage

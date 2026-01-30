@@ -547,16 +547,6 @@ public class Unrar5j {
             sharedDecoder.reset();
         }
     }
-
-    
-    private static void printBannerOld() {
-       System.out.println("               ___");
-       System.out.println("  _ _ __ _ _ _| __| (_)");
-       System.out.println(" | '_/ _` | '_|__ \\ | |");
-       System.out.println(" |_| \\__,_|_| |___//__|  v2026.01.23");
-       System.out.println("  Stéphane BURY - Apache 2.0");
-       System.out.println();
-    }
     
     private static void printBanner() {
        System.out.println("                          ___");
@@ -568,28 +558,51 @@ public class Unrar5j {
     }
     
     public static void main(String[] args) {
-      printBanner();
-      if (args.length < 2) {
-          System.out.println("Usage: java Unrar5j <archive.rar> <outputDir> [password]");
-          return;
-      }
-      String archivePath = args[0];
-      String outputDir = args[1];
-      String password = (args.length > 2) ? args[2] : null;
-      
-      SimpleDateFormat df = new SimpleDateFormat("dd/MM:ss - HH:mm:ss");
-      Date start = new Date();
-      System.out.println("Démarrage de la décryption et décompression at "+df.format(start)+" ...");
-
-      pathBuilder = new SafePathBuilder(new File(outputDir));
-     
-      ExtractionResult result = extract(archivePath, outputDir, password);
-      result.print();
-     
-      Date fin = new Date();
-      System.out.println("Fin de la décryption et décompression at "+df.format(fin)+" ...");
-      System.out.println("Durée totale "+df.format(new Date(fin.getTime()-start.getTime())));
-    }
+       printBanner();
+       
+       if (args.length < 1) {
+           System.out.println("Usage: unrar5j <archive.rar> [-o outputDir] [-p password]");
+           System.out.println();
+           System.out.println("Options:");
+           System.out.println("  -o <dir>      Extract to specified directory (default: current)");
+           System.out.println("  -p <password> Password for encrypted archives");
+           System.out.println();
+           System.out.println("Examples:");
+           System.out.println("  unrar5j archive.rar");
+           System.out.println("  unrar5j archive.rar -o /tmp/output");
+           System.out.println("  unrar5j encrypted.rar -p secret");
+           System.out.println("  unrar5j encrypted.rar -o /tmp/output -p secret");
+           return;
+       }
+       
+       String archivePath = args[0];
+       String outputDir = ".";
+       String password = null;
+       
+       // Parsing des arguments
+       for (int i = 1; i < args.length; i++) {
+           if ("-o".equals(args[i]) && i + 1 < args.length) {
+               outputDir = args[++i];
+           } else if ("-p".equals(args[i]) && i + 1 < args.length) {
+               password = args[++i];
+           }
+       }
+       
+       SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy - HH:mm:ss");
+       Date start = new Date();
+       System.out.println("Extracting to: " + new File(outputDir).getAbsolutePath());
+       System.out.println("Started at " + df.format(start) + " ...");
+       
+       pathBuilder = new SafePathBuilder(new File(outputDir));
+       
+       ExtractionResult result = extract(archivePath, outputDir, password);
+       result.print();
+       
+       Date fin = new Date();
+       System.out.println("Finished at " + df.format(fin));
+       long duration = fin.getTime() - start.getTime();
+       System.out.println("Duration: " + (duration / 1000) + "." + (duration % 1000) + "s");
+   }
 
 
 }
