@@ -29,7 +29,7 @@ jobs:
     - name: Create JAR
       run: |
         echo "Manifest-Version: 1.0" > MANIFEST.MF
-        echo "Main-Class: be.stef.rar5.UnRar5j" >> MANIFEST.MF
+        echo "Main-Class: be.stef.rar5.Unrar5j" >> MANIFEST.MF
         echo "" >> MANIFEST.MF
         jar cfm unrar5j.jar MANIFEST.MF -C bin .
     
