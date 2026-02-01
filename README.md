@@ -39,19 +39,20 @@ java -jar unrar5j.jar myarchive.rar [-o outputDir] [-p password]
 
 ```bash
 # Extract archive
+java -jar unrar5j.jar myarchive.rar
+
+# Extract archive to specified directory
 java -jar unrar5j.jar myarchive.rar -o ./output
 
 # Extract encrypted archive
 java -jar unrar5j.jar encrypted.rar -p mysecretpassword
-
-# Both options
-java -jar unrar5j.jar encrypted.rar -o ./output -p mysecretpassword
 ```
 
 ### Linux/macOS
 
 ```bash
 chmod +x unrar5j
+./unrar5j myarchive.rar
 ./unrar5j myarchive.rar -o ./output
 ./unrar5j encrypted.rar -p mysecretpassword
 ```
