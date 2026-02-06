@@ -334,7 +334,7 @@ public class Rar5LZDecoder {
                         }
                     }
                    
-                    int offset = fileOffset + dataIdx;
+                    int offset = (dataIdx + fileOffset) & (kFileSize - 1);  // masque 24 bits
                    
                     int addr = (data[dataIdx] & 0xFF) |
                               ((data[dataIdx + 1] & 0xFF) << 8) |
