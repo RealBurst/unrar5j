@@ -938,9 +938,8 @@ public class Rar5LZDecoder {
                         len -= back;
                        
                         srcPos = 0;
-                        System.arraycopy(win, srcPos, win, destPos, len);
-                        destPos += len;
-                        curWinPos = destPos;
+                        curWinPos = destPos + len;
+                        Rar5Utils.copyMatch((int)rep0, win, destPos, win, srcPos, curWinPos);
                         continue;
                     }
                     
