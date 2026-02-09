@@ -321,7 +321,7 @@ public class Rar5LZDecoder {
             // FILTER_E8 or FILTER_E8E9
             if (dataSize > 4) {
                 int fileOffset = (int) (f.startPos - lzFileStart);
-                final int kFileSize = 1 << 24;
+                final int fileSize = 1 << 24;
                 int dataIdx = 0;
                 int dataEnd = dataSize - 4;
                
@@ -334,17 +334,17 @@ public class Rar5LZDecoder {
                         }
                     }
                    
-                    int offset = (dataIdx + fileOffset) & (kFileSize - 1);  // masque 24 bits
+                    int offset = (dataIdx + fileOffset) & (fileSize - 1);  // masque 24 bits
                    
                     int addr = (data[dataIdx] & 0xFF) |
                               ((data[dataIdx + 1] & 0xFF) << 8) |
                               ((data[dataIdx + 2] & 0xFF) << 16) |
                               ((data[dataIdx + 3] & 0xFF) << 24);
                    
-                    if (Integer.compareUnsigned(addr, kFileSize) < 0) {
+                    if (Integer.compareUnsigned(addr, fileSize) < 0) {
                         addr -= offset;
                     } else if (Integer.compareUnsigned(addr, -offset) >= 0) {
-                        addr += kFileSize;
+                        addr += fileSize;
                     } else {
                         dataIdx += 4;
                         continue;
