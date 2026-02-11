@@ -38,7 +38,7 @@ package be.stef.rar5.decompress;
  * @see Rar5Decoder#FILTER_ARM
  */
 public class Rar5Filter {
-    public int startPos;   // Start position in the output stream
+    public long startPos;   // Start position in the output stream
     public int size;       // Size of the data to filter
     public int type;       // Filter type (DELTA, E8, E8E9, ARM)
     public int channels;   // Number of channels (for DELTA filter)

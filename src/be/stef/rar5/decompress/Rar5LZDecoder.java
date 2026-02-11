@@ -509,7 +509,7 @@ public class Rar5LZDecoder {
         if (f.type == Rar5Constants.FILTER_DELTA) {
             f.channels = bitStream.readBits9Fix(5) + 1;
         }
-        f.startPos = (int)(lzSize + windowPos + f.startPos);
+        f.startPos = lzSize + windowPos + f.startPos;
         
         if (f.startPos < filterEnd) {
             isUnsupportedFilter = true;

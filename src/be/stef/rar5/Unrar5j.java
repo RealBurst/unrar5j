@@ -634,7 +634,7 @@ public class Unrar5j {
        System.out.println("                         ___");
        System.out.println("  _  _ _ _  _ _ __ _ _ _| __| (_)");
        System.out.println(" | || | ' \\| '_/ _` | '_|__ \\ | |");
-       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v1.0.1 - 2026.02.09");
+       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v1.0.2 - 2026.02.11");
        System.out.println("    Stéphane BURY - Apache 2.0");
        System.out.println();
     }
