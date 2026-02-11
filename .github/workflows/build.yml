@@ -21,6 +21,15 @@ jobs:
         java-version: '8'
         distribution: 'temurin'
     
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "release" ]; then
+          echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+        fi
+    
     - name: Compile
       run: |
         mkdir -p bin
@@ -28,19 +37,21 @@ jobs:
     
     - name: Create JAR
       run: |
+        VERSION=${{ steps.version.outputs.VERSION }}
         echo "Manifest-Version: 1.0" > MANIFEST.MF
         echo "Main-Class: be.stef.rar5.Unrar5j" >> MANIFEST.MF
+        echo "Implementation-Version: ${VERSION}" >> MANIFEST.MF
         echo "" >> MANIFEST.MF
-        jar cfm unrar5j.jar MANIFEST.MF -C bin .
+        jar cfm unrar5j-${VERSION}.jar MANIFEST.MF -C bin .
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: unrar5j
-        path: unrar5j.jar
+        name: unrar5j-${{ steps.version.outputs.VERSION }}
+        path: unrar5j-${{ steps.version.outputs.VERSION }}.jar
     
     - name: Upload to release
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
-        files: unrar5j.jar
+        files: unrar5j-${{ steps.version.outputs.VERSION }}.jar
