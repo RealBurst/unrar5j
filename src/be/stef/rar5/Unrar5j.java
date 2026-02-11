@@ -128,7 +128,12 @@ public class Unrar5j {
      * @param password password for encrypted archives, or null
      * @return extraction result with success/error counts
      */
+    
     public static ExtractionResult extract(String archivePath, String outputDir, String password) {
+       return extract(archivePath, outputDir, password, null);
+    }
+    
+    public static ExtractionResult extract(String archivePath, String outputDir, String password, String fileFilter) {
         ExtractionResult result = new ExtractionResult();
         File tempFile = null;
         isEncryptedArchive = false;
@@ -138,6 +143,7 @@ public class Unrar5j {
         try {
             File archiveFile = new File(archivePath);
             if (!archiveFile.exists()) {
+               System.out.println("Archive ["+archiveFile.getCanonicalPath()+"] not found !");
                 return result;
             }
             
@@ -189,6 +195,18 @@ public class Unrar5j {
             try (RandomAccessFile raf = new RandomAccessFile(archiveFile, "r")) {
                 for (Rar5FileBlock file : fileBlocks) {
                     try {
+                        boolean isTarget = (fileFilter == null || fileFilter.equals(file.getFileName()));
+                       
+                        if (file.isSolid() && !isTarget) {
+                           // Archive solid : on doit décoder mais on n'écrit pas sur disque
+                           // Il faut quand même appeler le décodeur pour maintenir son état
+                           extractFile(file, raf, reader, outputDir, password, result, false);
+                           continue;
+                        }
+                       
+                        if (!isTarget) {
+                           continue;  // Non-solid : on peut simplement sauter
+                        }                        
                         extractFile(file, raf, reader, outputDir, password, result);
                         result.unpackedFiles.add(file.getFileName());
                     } catch (Exception e) {
@@ -298,7 +316,7 @@ public class Unrar5j {
     /**
      * Extracts a single file from the archive.
      */
-    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result) throws Exception {
+    private static void extractFileOLD(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result) throws Exception {
         // Handle directories
         if (file.isDirectory()) {
             File dir = new File(outputDir, file.getFileName());
@@ -408,6 +426,139 @@ public class Unrar5j {
         result.successCount++;
     }
 
+    
+    /**
+     * Extracts a single file from the archive.
+     */
+    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result) throws Exception {
+      extractFile(file, raf, reader, outputDir, password, result, true);
+    }
+
+    /**
+     * Extracts a single file from the archive.
+     * @param writeOutput if false, file is decoded but not written to disk (for solid archive skip)
+     */
+    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result, boolean writeOutput) throws Exception {
+        
+        // Handle directories
+        if (file.isDirectory()) {
+            if (writeOutput) {
+                File dir = new File(outputDir, file.getFileName());
+                dir.mkdirs();
+            }
+            result.successCount++;
+            return;
+        }
+        
+        // Handle empty files
+        long start = file.getDataStart();
+        long end = file.getDataEnd();
+        long dataSize = end - start;
+        
+        if (dataSize == 0) {
+            if (writeOutput) {
+                File outFile = pathBuilder.buildSafePath(file.getFileName());
+                outFile.getParentFile().mkdirs();
+                outFile.createNewFile();
+            }
+            result.successCount++;
+            return;
+        }
+        
+        // Validate data position
+        if (start >= end || end > raf.length()) {
+            result.errors.add(new ExtractionError(file, "Invalid data position: " + start + "-" + end, null));
+            result.errorCount++;
+            return;
+        }
+        
+        // Get the input stream for decompression
+        InputStream decompressInput;
+        
+        if (file.isEncrypted()) {
+            // Encrypted: must load into memory for decryption
+            if (password == null || password.isEmpty()) {
+                result.errors.add(new ExtractionError(file, "File is encrypted but no password provided", null));
+                result.errorCount++;
+                return;
+            }
+            
+            // Verify password first (if password check value is available)
+            Rar5ExtraCrypto crypto = file.getCrypto();
+            if (crypto != null && crypto.hasPasswordCheck()) {
+                try {
+                    boolean passwordOk = Rar5Crypto.verifyPassword(password, crypto);
+                    if (!passwordOk) {
+                        result.errors.add(new ExtractionError(file, "Wrong password", null));
+                        result.errorCount++;
+                        result.passwordStatut = 2; // BAD PASSWORD
+                        return;
+                    } else {
+                        result.passwordStatut = 1; // GOOD PASSWORD
+                    }
+                } catch (Exception e) {
+                    // Password verification failed, continue anyway
+                }
+            }
+        
+            // Create decrypting stream (no memory copy)
+            raf.seek(start);
+            InputStream boundedInput = new BoundedInputStream(raf, dataSize);
+            decompressInput = reader.createDecryptingStream(file, boundedInput);
+            if (decompressInput == null) {
+                result.errors.add(new ExtractionError(file, "Decryption setup failed", null));
+                result.errorCount++;
+                return;
+            }
+        
+        } else {
+            // Non-encrypted: use BoundedInputStream directly (no memory copy)
+            raf.seek(start);
+            decompressInput = new BoundedInputStream(raf, dataSize);
+        }
+        
+        if (writeOutput) {
+            // --- Mode normal : décompresser vers fichier ---
+            File outFile = new File(outputDir, file.getFileName());
+            outFile.getParentFile().mkdirs();
+            
+            boolean success = decompressToFile(file, decompressInput, outFile);
+            if (!success) {
+                result.errors.add(new ExtractionError(file, "Decompression failed", null));
+                result.errorCount++;
+                return;
+            }
+            
+            // Verify CRC32
+            if (file.hasCRC()) {
+                long calculatedCRC = calculateFileCRC(outFile);
+                long expectedCRC = file.getCRC();
+                
+                boolean crcOk;
+                if (file.isEncrypted() && !isEncryptedArchive) {
+                    Rar5ExtraCrypto crypto = file.getCrypto();
+                    byte[] hashKeyN16 = Rar5Crypto.deriveCrcHashKeyN16_Standard(password, crypto);
+                    crcOk = Rar5Crypto.verifyCrcWithHMAC(calculatedCRC, expectedCRC, hashKeyN16);
+                } else {
+                    crcOk = (calculatedCRC == expectedCRC);
+                }
+                
+                if (!crcOk) {
+                    System.out.printf("CRC mismatch. Calculated: 0x%08X; expected: 0x%08X%n", calculatedCRC, expectedCRC);
+                    outFile.delete();
+                    throw new Rar5DecryptException("CRC mismatch - file may be corrupted.");
+                }
+            }
+            
+            result.successCount++;
+            
+        } else {
+            // --- Mode skip (solid) : décoder sans écrire sur disque ---
+            // On doit quand même consommer le stream pour maintenir l'état du décodeur
+            decompressToNull(file, decompressInput);
+        }
+    }
+    
     /**
      * Calculates CRC32 of a file without loading it entirely in memory.
      */
@@ -518,12 +669,58 @@ public class Unrar5j {
            return false;
            
        } catch (Exception e) {
+           System.err.println("Error: " + e.getMessage());
            if (progressOut != null) {
                progressOut.finish();
            }
            return false;
        }
-   }
+    }
+   
+    /**
+     * Decompresses data from an InputStream without writing output.
+     * Used for solid archives when skipping a file but needing to maintain decoder state.
+     */
+    private static void decompressToNull(Rar5FileBlock file, InputStream input) {
+        try {
+            int method = file.getCompressionMethod();
+            long unpackedSize = file.getUnpackedSize();
+            
+            // Method 0 = Store (no compression) - just drain the stream
+            if (method == Rar5Constants.COMPRESS_METHOD_STORE) {
+                byte[] buf = new byte[8192];
+                while (input.read(buf) != -1) {}
+                return;
+            }
+            
+            if (sharedDecoder == null) {
+                sharedDecoder = new Rar5LZDecoder();
+            }
+            
+            if (!file.isSolid()) {
+                sharedDecoder.reset();
+            }
+            
+            byte[] properties = Rar5PropertyEncoder.encodeWindowSize(
+                  file.getWindowSize(),
+                  file.isSolid(),
+                  file.isV7()
+            );
+            
+            sharedDecoder.setDecoderProperties(properties);
+            
+            // Décoder vers un OutputStream qui jette tout
+            OutputStream nullOut = new OutputStream() {
+                @Override public void write(int b) {}
+                @Override public void write(byte[] b, int off, int len) {}
+            };
+            
+            sharedDecoder.decode(input, nullOut, null, unpackedSize, null);
+        } catch (Exception e) {
+            System.err.println("Warning: failed to decode skipped solid file: " + file.getFileName());
+        }
+    }
+    
     
     /**
      * Reads the first bytes of a file.
@@ -549,10 +746,10 @@ public class Unrar5j {
     }
     
     private static void printBanner() {
-       System.out.println("                          ___");
+       System.out.println("                         ___");
        System.out.println("  _  _ _ _  _ _ __ _ _ _| __| (_)");
        System.out.println(" | || | ' \\| '_/ _` | '_|__ \\ | |");
-       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v2026.02.09");
+       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v1.0.1 - 2026.02.09");
        System.out.println("    Stéphane BURY - Apache 2.0");
        System.out.println();
     }
@@ -561,23 +758,26 @@ public class Unrar5j {
        printBanner();
        
        if (args.length < 1) {
-           System.out.println("Usage: unrar5j <archive.rar> [-o outputDir] [-p password]");
-           System.out.println();
-           System.out.println("Options:");
-           System.out.println("  -o <dir>      Extract to specified directory (default: current)");
-           System.out.println("  -p <password> Password for encrypted archives");
-           System.out.println();
-           System.out.println("Examples:");
-           System.out.println("  unrar5j archive.rar");
-           System.out.println("  unrar5j archive.rar -o /tmp/output");
-           System.out.println("  unrar5j encrypted.rar -p secret");
-           System.out.println("  unrar5j encrypted.rar -o /tmp/output -p secret");
-           return;
-       }
+          System.out.println("Usage: java -jar Unrar5j <archive.rar> [-o outputDir] [-p password] [-f filename]");
+          System.out.println();
+          System.out.println("Options:");
+          System.out.println("  -o <dir>      Extract to specified directory (default: current)");
+          System.out.println("  -p <password> Password for encrypted archives");
+          System.out.println("  -f <fullfilename> Extract only this file from the archive");
+          System.out.println();
+          System.out.println("Examples:");
+          System.out.println("  unrar5j archive.rar");
+          System.out.println("  unrar5j archive.rar -o /tmp/output");
+          System.out.println("  unrar5j encrypted.rar -p secret");
+          System.out.println("  unrar5j archive.rar -f \"anypath/to/document with spaces.pdf\"");
+          System.out.println("  unrar5j encrypted.rar -o /tmp/output -p secret -f anypath/to/myfile.txt");
+          return;
+      }
        
        String archivePath = args[0];
        String outputDir = ".";
        String password = null;
+       String fileFilter = null;
        
        // Parsing des arguments
        for (int i = 1; i < args.length; i++) {
@@ -585,17 +785,22 @@ public class Unrar5j {
                outputDir = args[++i];
            } else if ("-p".equals(args[i]) && i + 1 < args.length) {
                password = args[++i];
+           } else if ("-f".equals(args[i]) && i + 1 < args.length) {
+              fileFilter = args[++i].replace("\\", "/");
            }
        }
        
        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy - HH:mm:ss");
        Date start = new Date();
        System.out.println("Extracting to: " + new File(outputDir).getAbsolutePath());
+       if (fileFilter != null) {  // <-- AJOUT
+          System.out.println("Filter: extracting only \"" + fileFilter + "\"");
+       }
        System.out.println("Started at " + df.format(start) + " ...");
        
        pathBuilder = new SafePathBuilder(new File(outputDir));
        
-       ExtractionResult result = extract(archivePath, outputDir, password);
+       ExtractionResult result = extract(archivePath, outputDir, password, fileFilter);
        result.print();
        
        Date fin = new Date();
