@@ -86,6 +86,32 @@ public class SafePathBuilder {
         return resolveCollision(destFile);
     }
 
+    /**
+     * Builds a safe directory path with sanitization and path traversal protection,
+     * but WITHOUT collision detection. Directories that already exist are normal
+     * (created by mkdirs() during file extraction) and should not be renamed.
+     */
+    public File buildSafeDirPath(String originalPath) throws IOException {
+        String normalized = originalPath.replace("\\", "/"); 
+        Path p = Paths.get(normalized);
+        Path safePath = Paths.get("");
+
+        for (Path component : p) {
+            String sanitizedName = sanitizeComponent(component.toString());
+            safePath = safePath.resolve(sanitizedName);
+        }
+
+        File destFile = new File(baseDir, safePath.toString());
+        
+        // Protection Path Traversal
+        if (!destFile.getCanonicalPath().startsWith(baseDir.getCanonicalPath())) {
+            throw new IOException("Security Error: Path traversal attempt: " + originalPath);
+
+        }
+
+        return destFile;
+    }
+
     private String sanitizeComponent(String name) {
         // 1. Caractères interdits
         String clean = ILLEGAL_CHARS.matcher(name).replaceAll("_");

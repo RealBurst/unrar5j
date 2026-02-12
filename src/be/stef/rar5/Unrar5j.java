@@ -75,6 +75,7 @@ public class Unrar5j {
     public static boolean showProgress = true;    
     public static boolean isEncryptedArchive;
     public static SafePathBuilder pathBuilder;
+    public static long maxCompressionRatio = 1000; //Maximum allowed compression ratio (unpackedSize / compressedSize). Default 1000:1
     
     /**
      * Checks if an archive requires a password (has encrypted headers).
@@ -133,7 +134,7 @@ public class Unrar5j {
        return extract(archivePath, outputDir, password, null);
     }
     
-    public static ExtractionResult extract(String archivePath, String outputDir, String password, String fileFilter) {
+    public static synchronized ExtractionResult extract(String archivePath, String outputDir, String password, String fileFilter) {
         ExtractionResult result = new ExtractionResult();
         File tempFile = null;
         isEncryptedArchive = false;
@@ -151,6 +152,9 @@ public class Unrar5j {
             if (!outDir.exists()) {
                 outDir.mkdirs();
             }
+            
+            // Initialize SafePathBuilder for path traversal protection
+            pathBuilder = new SafePathBuilder(outDir);
             
             // Step 1: Decrypt headers if needed
             if (isEncrypted(archivePath)) {
@@ -174,11 +178,11 @@ public class Unrar5j {
                     }
                 }
                 
-                String tempPath = archivePath.replace(".rar", "_dec.rar");
+                tempFile = File.createTempFile("unrar5j_dec_", ".rar");
+                tempFile.deleteOnExit();
                 Rar5HeaderDecryptor decryptor = new Rar5HeaderDecryptor(password);
-                decryptor.decryptToFile(archivePath, tempPath);
-                
-                tempFile = new File(tempPath);
+                decryptor.decryptToFile(archivePath, tempFile.getAbsolutePath());
+
                 archiveFile = tempFile;
             }
          
@@ -219,6 +223,9 @@ public class Unrar5j {
             
         } catch (Exception e) {
             // Fatal error
+            System.err.println("Fatal extraction error: " + e.getMessage());
+            result.errors.add(new ExtractionError(null, "Fatal error: " + e.getMessage(), e));
+            result.errorCount++;
         } finally {
             // Clean up temp file
             if (tempFile != null && tempFile.exists()) {
@@ -328,7 +335,7 @@ public class Unrar5j {
         // Handle directories
         if (file.isDirectory()) {
             if (writeOutput) {
-                File dir = new File(outputDir, file.getFileName());
+                File dir = pathBuilder.buildSafeDirPath(file.getFileName());
                 dir.mkdirs();
             }
             result.successCount++;
@@ -356,7 +363,16 @@ public class Unrar5j {
             result.errorCount++;
             return;
         }
-        
+
+        // Decompression bomb protection
+        long unpackedSize = file.getUnpackedSize();
+        if (maxCompressionRatio > 0 && dataSize > 0 && unpackedSize / dataSize > maxCompressionRatio) {
+            result.errors.add(new ExtractionError(file, 
+                "Compression ratio " + (unpackedSize / dataSize) + ":1 exceeds maximum allowed " + maxCompressionRatio + ":1", null));
+            result.errorCount++;
+            return;
+        }
+
         // Get the input stream for decompression
         InputStream decompressInput;
         
@@ -404,7 +420,7 @@ public class Unrar5j {
         
         if (writeOutput) {
             // --- Mode normal : décompresser vers fichier ---
-            File outFile = new File(outputDir, file.getFileName());
+            File outFile = pathBuilder.buildSafePath(file.getFileName());
             outFile.getParentFile().mkdirs();
             
             boolean success = decompressToFile(file, decompressInput, outFile);
@@ -634,7 +650,7 @@ public class Unrar5j {
        System.out.println("                         ___");
        System.out.println("  _  _ _ _  _ _ __ _ _ _| __| (_)");
        System.out.println(" | || | ' \\| '_/ _` | '_|__ \\ | |");
-       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v1.0.2 - 2026.02.11");
+       System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v1.0.3 - 2026.02.12");
        System.out.println("    Stéphane BURY - Apache 2.0");
        System.out.println();
     }
@@ -643,7 +659,7 @@ public class Unrar5j {
        printBanner();
        
        if (args.length < 1) {
-          System.out.println("Usage: java -jar Unrar5j <archive.rar> [-o outputDir] [-p password] [-f filename]");
+          System.out.println("Usage: java -jar unrar5j <archive.rar> [-o outputDir] [-p password] [-f filename]");
           System.out.println();
           System.out.println("Options:");
           System.out.println("  -o <dir>      Extract to specified directory (default: current)");
