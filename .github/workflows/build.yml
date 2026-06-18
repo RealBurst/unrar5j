@@ -39,7 +39,7 @@ jobs:
       run: |
         VERSION=${{ steps.version.outputs.VERSION }}
         echo "Manifest-Version: 1.0" > MANIFEST.MF
-        echo "Main-Class: be.stef.rar5.Unrar5j" >> MANIFEST.MF
+        echo "Main-Class: be.stef.rar.Unrar5j" >> MANIFEST.MF
         echo "Implementation-Version: ${VERSION}" >> MANIFEST.MF
         echo "" >> MANIFEST.MF
         jar cfm unrar5j-${VERSION}.jar MANIFEST.MF -C bin .
