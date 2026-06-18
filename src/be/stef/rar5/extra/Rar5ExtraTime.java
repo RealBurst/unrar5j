@@ -15,10 +15,10 @@
  */
 package be.stef.rar5.extra;
 
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * Extended timestamp information from a RAR5 file's extra area.
@@ -117,9 +117,9 @@ public class Rar5ExtraTime {
     
     private long readTime(byte[] data, int offset, int size) {
         if (size == 4) {
-            return Rar5Utils.readUInt32LE(data, offset);
+            return Utils.readUInt32LE(data, offset);
         } else {
-            return Rar5Utils.readUInt64LE(data, offset);
+            return Utils.readUInt64LE(data, offset);
         }
     }
     

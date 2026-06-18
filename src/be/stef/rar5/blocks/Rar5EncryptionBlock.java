@@ -15,10 +15,10 @@
  */
 package be.stef.rar5.blocks;
 
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * Archive Encryption block for RAR5 archives with encrypted headers.
@@ -80,7 +80,7 @@ public class Rar5EncryptionBlock extends Rar5Block {
             if (pos + Rar5Constants.SALT_SIZE > endExclusive) {
                 return false;
             }
-            salt = Rar5Utils.copyBytes(data, pos, Rar5Constants.SALT_SIZE);
+            salt = Utils.copyBytes(data, pos, Rar5Constants.SALT_SIZE);
             pos += Rar5Constants.SALT_SIZE;
             
             // Password check (12 bytes, optional)
@@ -88,7 +88,7 @@ public class Rar5EncryptionBlock extends Rar5Block {
                 if (pos + Rar5Constants.CHECK_VALUE_SIZE > endExclusive) {
                     return false;
                 }
-                passwordCheck = Rar5Utils.copyBytes(data, pos, Rar5Constants.CHECK_VALUE_SIZE);
+                passwordCheck = Utils.copyBytes(data, pos, Rar5Constants.CHECK_VALUE_SIZE);
                 pos += Rar5Constants.CHECK_VALUE_SIZE;
             }
             

@@ -18,11 +18,11 @@ package be.stef.rar5.blocks;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
 import be.stef.rar5.extra.*;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * File Header block for RAR5 archives.
@@ -245,7 +245,7 @@ public class Rar5FileBlock extends Rar5Block {
                 if (pos + 4 > endExclusive) {
                     return false;
                 }
-                unixModificationTime = Rar5Utils.readUInt32LE(data, pos);
+                unixModificationTime = Utils.readUInt32LE(data, pos);
                 pos += 4;
             }
             
@@ -254,7 +254,7 @@ public class Rar5FileBlock extends Rar5Block {
                 if (pos + 4 > endExclusive) {
                     return false;
                 }
-                crc = Rar5Utils.readUInt32LE(data, pos);
+                crc = Utils.readUInt32LE(data, pos);
                 pos += 4;
             }
             

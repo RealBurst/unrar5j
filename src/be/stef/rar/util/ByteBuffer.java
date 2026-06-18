@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.util;
+package be.stef.rar.util;
 
 /**
  * Simple byte buffer with lazy allocation.

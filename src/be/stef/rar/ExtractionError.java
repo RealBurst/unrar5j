@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5;
-
-import be.stef.rar5.blocks.Rar5FileBlock;
+package be.stef.rar;
 
 /**
   * Represents an extraction error for a single file.
@@ -31,13 +29,30 @@ import be.stef.rar5.blocks.Rar5FileBlock;
      public final Exception exception;       // Exception that caused the error, if any
 
      
-     public ExtractionError(Rar5FileBlock file, String error, Exception ex) {
-         this.fileName = file.getFileName();
-         this.unpackedSize = file.getUnpackedSize();
-         this.compressionMethod = file.getCompressionMethod();
-         this.isV7 = file.isV7();
-         this.isSolid = file.isSolid();
-         this.isEncryptedBlock = file.isEncrypted();
+     public ExtractionError(String fileName, long unpackedSize, int compressionMethod,
+                            boolean isV7, boolean isSolid, boolean isEncryptedBlock,
+                            String error, Exception ex) {
+         this.fileName = fileName;
+         this.unpackedSize = unpackedSize;
+         this.compressionMethod = compressionMethod;
+         this.isV7 = isV7;
+         this.isSolid = isSolid;
+         this.isEncryptedBlock = isEncryptedBlock;
+         this.errorMessage = error;
+         this.exception = ex;
+     }
+     
+     public ExtractionError(String fileName, String error) {
+         this(fileName, error, null);
+     }
+
+     public ExtractionError(String fileName, String error, Exception ex) {
+         this.fileName = fileName;
+         this.unpackedSize = -1;
+         this.compressionMethod = -1;
+         this.isV7 = false;
+         this.isSolid = false;
+         this.isEncryptedBlock = false;
          this.errorMessage = error;
          this.exception = ex;
      }

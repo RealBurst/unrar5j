@@ -15,10 +15,10 @@
  */
 package be.stef.rar5.extra;
 
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * Encryption information from a RAR5 file's extra area.
@@ -110,14 +110,14 @@ public class Rar5ExtraCrypto {
             if (pos + Rar5Constants.SALT_SIZE > end) {
                 return false;
             }
-            salt = Rar5Utils.copyBytes(data, pos, Rar5Constants.SALT_SIZE);
+            salt = Utils.copyBytes(data, pos, Rar5Constants.SALT_SIZE);
             pos += Rar5Constants.SALT_SIZE;
             
             // Initialization Vector (16 bytes)
             if (pos + Rar5Constants.AES_BLOCK_SIZE > end) {
                 return false;
             }
-            initVector = Rar5Utils.copyBytes(data, pos, Rar5Constants.AES_BLOCK_SIZE);
+            initVector = Utils.copyBytes(data, pos, Rar5Constants.AES_BLOCK_SIZE);
             pos += Rar5Constants.AES_BLOCK_SIZE;
             
             // Password check value (12 bytes, optional)
@@ -125,7 +125,7 @@ public class Rar5ExtraCrypto {
                 if (pos + Rar5Constants.CHECK_VALUE_SIZE > end) {
                     return false;
                 }
-                passwordCheck = Rar5Utils.copyBytes(data, pos, Rar5Constants.CHECK_VALUE_SIZE);
+                passwordCheck = Utils.copyBytes(data, pos, Rar5Constants.CHECK_VALUE_SIZE);
                 pos += Rar5Constants.CHECK_VALUE_SIZE;
             }
             

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5;
+package be.stef.rar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,12 +23,12 @@ import java.util.List;
   */
  public class ExtractionResult {
      public String archiveName; 
-     ArrayList<String> unpackedFiles = new ArrayList<>();
-     ArrayList<String> failedFiles = new ArrayList<>();
+     public ArrayList<String> unpackedFiles = new ArrayList<>();
+     public ArrayList<String> failedFiles = new ArrayList<>();
      public int totalFiles;         //Total number of files in the archive
      public int successCount;       //Number of successfully extracted files
      public int errorCount;         //Number of files that failed to extract
-     public int passwordStatut = 0;                                  
+     public int passwordStatus = 0;                                  
      public final List<ExtractionError> errors = new ArrayList<>(); //List of extraction errors
      
      /**
@@ -37,9 +37,9 @@ import java.util.List;
      public void print() {
          System.out.println("\n=== Extraction Result ===");
          System.out.println("Archive Name: " + archiveName);
-         if(passwordStatut > 0) {
+         if(passwordStatus > 0) {
             System.out.println("File encrypted !");
-            System.out.println("Password check: "+(passwordStatut==1?"OK":"BAD PASSWORD !"));
+            System.out.println("Password check: "+(passwordStatus==1?"OK":"BAD PASSWORD !"));
          }
          System.out.println("Total files: " + totalFiles+" :");
          System.out.println("Successful: " + successCount);

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.util;
+package be.stef.rar.util;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -31,8 +31,8 @@ import java.io.RandomAccessFile;
  * 
  * <p>Example: Value 300 (0x12C) is encoded as [0xAC, 0x02]</p>
  * <ul>
- *   <li>0xAC = 10101100 â†’ continuation=1, data=0101100 (44)</li>
- *   <li>0x02 = 00000010 â†’ continuation=0, data=0000010 (2)</li>
+ *   <li>0xAC = 10101100 -> continuation=1, data=0101100 (44)</li>
+ *   <li>0x02 = 00000010 -> continuation=0, data=0000010 (2)</li>
  *   <li>Result: (2 &lt;&lt; 7) | 44 = 256 + 44 = 300</li>
  * </ul>
  * 

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.util;
+package be.stef.rar.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,13 +44,13 @@ public class SafePathBuilder {
         this.baseDir = outputDirectory;
         if (!baseDir.exists()) baseDir.mkdirs();
         
-        // --- DÉTECTION PHYSIQUE DU SYSTÈME DE FICHIERS ---
+        // --- PHYSICAL FILE-SYSTEM DETECTION ---
         this.isCaseSensitiveFS = detectCaseSensitivity(outputDirectory);
 //        System.out.println("  [FS INFO] Case-Sensitive FS: " + this.isCaseSensitiveFS);
     }
 
     /**
-     * Teste réellement si le disque cible est sensible à la casse.
+     * Actually tests whether the target disk is case-sensitive.
      */
     private boolean detectCaseSensitivity(File dir) {
         try {
@@ -59,14 +59,14 @@ public class SafePathBuilder {
             Files.delete(testFile);
             return sensitive;
         } catch (IOException e) {
-            // Repli sur une détection par OS si le test échoue
+            // Fall back to OS-based detection if the test fails
             String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
             return !(os.contains("win") || os.contains("mac"));
         }
     }
 
     public File buildSafePath(String originalPath) throws IOException {
-        // Normalisation et sécurisation du chemin
+        // Path normalization and hardening
         String normalized = originalPath.replace("\\", "/"); 
         Path p = Paths.get(normalized);
         Path safePath = Paths.get("");
@@ -113,10 +113,10 @@ public class SafePathBuilder {
     }
 
     private String sanitizeComponent(String name) {
-        // 1. Caractères interdits
+        // 1. Illegal characters
         String clean = ILLEGAL_CHARS.matcher(name).replaceAll("_");
         
-        // 2. Nettoyage points/espaces finaux (critique pour Windows)
+        // 2. Trim trailing dots/spaces (critical on Windows)
         clean = clean.trim();
         while (clean.endsWith(".")) {
             clean = clean.substring(0, clean.length() - 1) + "_";
@@ -124,7 +124,7 @@ public class SafePathBuilder {
         
         if (clean.isEmpty()) clean = "_empty_";
 
-        // 3. Gestion des RESERVED_NAMES (ex: AUX.txt -> _AUX_.txt)
+        // 3. Handle RESERVED_NAMES (e.g. AUX.txt -> _AUX_.txt)
         String nameNoExt = clean.contains(".") ? clean.substring(0, clean.lastIndexOf('.')) : clean;
         if (RESERVED_NAMES.contains(nameNoExt.toUpperCase(Locale.ROOT))) {
             clean = "_" + clean + "_";
@@ -149,8 +149,8 @@ public class SafePathBuilder {
         int counter = 1;
         String checkKey = getCollisionKey(finalFile);
 
-        // La boucle tourne tant qu'on a une collision "logique" (notre session) 
-        // ou "physique" (le fichier est déjà sur le disque)
+        // Loop while there is a "logical" collision (within our session)
+        // or "physical" (the file already exists on disk)
         while (writtenPaths.contains(checkKey) || finalFile.exists()) {
             String newName = baseName + "_" + counter + extension;
             finalFile = new File(parent, newName);
@@ -165,6 +165,10 @@ public class SafePathBuilder {
     private String getCollisionKey(File f) {
         String path = f.getAbsolutePath();
         return isCaseSensitiveFS ? path : path.toLowerCase(Locale.ROOT);
+    }
+
+    public File getBaseDir() {
+       return baseDir;
     }
 }
 

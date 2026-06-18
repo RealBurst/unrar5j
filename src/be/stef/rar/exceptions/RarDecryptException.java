@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.exceptions;
+package be.stef.rar.exceptions;
 
 /**
  * Exception thrown when RAR5 decryption fails.
@@ -29,7 +29,7 @@ package be.stef.rar5.exceptions;
  * @author Stef
  * @since 1.0
  */
-public class Rar5DecryptException extends Exception {
+public class RarDecryptException extends Exception {
     private static final long serialVersionUID = 1L;
     
     /**
@@ -37,7 +37,7 @@ public class Rar5DecryptException extends Exception {
      * 
      * @param message the detail message
      */
-    public Rar5DecryptException(String message) {
+    public RarDecryptException(String message) {
         super(message);
     }
     
@@ -47,7 +47,7 @@ public class Rar5DecryptException extends Exception {
      * @param message the detail message
      * @param cause the cause of this exception
      */
-    public Rar5DecryptException(String message, Throwable cause) {
+    public RarDecryptException(String message, Throwable cause) {
         super(message, cause);
     }
 }

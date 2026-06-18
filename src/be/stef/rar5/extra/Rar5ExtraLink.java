@@ -16,9 +16,9 @@
 package be.stef.rar5.extra;
 
 import java.nio.charset.StandardCharsets;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * Link information from a RAR5 file's extra area.

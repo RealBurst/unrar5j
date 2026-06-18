@@ -16,10 +16,10 @@
 package be.stef.rar5.blocks;
 
 import java.nio.charset.StandardCharsets;
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * Main Archive Header block for RAR5 archives.
@@ -323,9 +323,9 @@ public class Rar5MainArchiveBlock extends Rar5Block {
                     }
                     
                     if (timeSize == 4) {
-                        creationTime = Rar5Utils.readUInt32LE(data, pos);
+                        creationTime = Utils.readUInt32LE(data, pos);
                     } else {
-                        creationTime = Rar5Utils.readUInt64LE(data, pos);
+                        creationTime = Utils.readUInt64LE(data, pos);
                     }
                     pos += timeSize;
                 }

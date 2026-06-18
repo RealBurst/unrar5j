@@ -20,10 +20,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import javax.swing.JProgressBar;
+import be.stef.rar.exceptions.RarCorruptedDataException;
+import be.stef.rar.util.ByteBuffer;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.exceptions.Rar5CorruptedDataException;
-import be.stef.rar5.util.ByteBuffer;
-import be.stef.rar5.util.Rar5Utils;
 
 /**
  * LZ (Lempel-Ziv) decoder for RAR5 archives.
@@ -56,7 +55,7 @@ import be.stef.rar5.util.Rar5Utils;
  * 
  * @author Stef
  * @since 1.0
- * @see Rar5CorruptedDataException
+ * @see RarCorruptedDataException
  */
 public class Rar5LZDecoder {
     private static final int WRITE_STEP = 1 << 18;             //Write step size for output buffering (256 KB).
@@ -555,7 +554,7 @@ public class Rar5LZDecoder {
      * 
      * @param bitStream the bit stream to read table data from
      * @throws IOException if a read error occurs
-     * @throws Rar5CorruptedDataException if table data is malformed
+     * @throws RarCorruptedDataException if table data is malformed
      */
     private void readHuffmanTables(Rar5BitDecoder bitStream) throws IOException {
         if (mainProgressBar != null) {
@@ -573,7 +572,7 @@ public class Rar5LZDecoder {
         checkSum ^= flags;
         int num = (flags >> 3) & 3;
         if (num >= 3) {
-            throw new Rar5CorruptedDataException("Invalid block header flags");
+            throw new RarCorruptedDataException("Invalid block header flags");
         }
 
         int blockSize = bitStream.readByteInAligned() & 0xFF;
@@ -590,7 +589,7 @@ public class Rar5LZDecoder {
         }
 
         if (checkSum != 0x5A) {
-            throw new Rar5CorruptedDataException("Block header checksum mismatch");
+            throw new RarCorruptedDataException("Block header checksum mismatch");
         }
 
         int blockSizeBits7 = (flags & 7) + 1;
@@ -611,7 +610,7 @@ public class Rar5LZDecoder {
         if ((flags & 0x80) == 0) {
             if (!isTableWasFilled) {
                 if (blockSize + blockSizeBits7 != 0) {
-                    throw new Rar5CorruptedDataException("Invalid empty block");
+                    throw new RarCorruptedDataException("Invalid empty block");
                 }
             }
             return;
@@ -631,7 +630,7 @@ public class Rar5LZDecoder {
             if (bitStream.bufPos >= bitStream.bufCheckBlockPos) {
                 bitStream.prepare();
                 if (bitStream.isBlockOverRead()) {
-                    throw new Rar5CorruptedDataException("Block overread while reading level table");
+                    throw new RarCorruptedDataException("Block overread while reading level table");
                 }
             }
             int len = bitStream.readBits9Fix(4);
@@ -653,11 +652,11 @@ public class Rar5LZDecoder {
         } while (i < kLevelTableSize);
 
         if (bitStream.isBlockOverRead()) {
-            throw new Rar5CorruptedDataException("Block overread after level table");
+            throw new RarCorruptedDataException("Block overread after level table");
         }
 
         if (!levelDecoder.build(levelLens, Rar5HuffmanDecoder.HUFFMAN_BUILD_MODE_FULL_OR_EMPTY)) {
-            throw new Rar5CorruptedDataException("Failed to build level Huffman decoder");
+            throw new RarCorruptedDataException("Failed to build level Huffman decoder");
         }
 
         i = 0;
@@ -667,7 +666,7 @@ public class Rar5LZDecoder {
             if (bitStream.bufPos >= bitStream.bufCheckBlockPos) {
                 bitStream.prepare();
                 if (bitStream.isBlockOverRead()) {
-                    throw new Rar5CorruptedDataException("Block overread while reading main table");
+                    throw new RarCorruptedDataException("Block overread while reading main table");
                 }
             }
 
@@ -684,7 +683,7 @@ public class Rar5LZDecoder {
                 int v = 0;
                 if (sym < 16 + 2) {
                     if (i == 0) {
-                        throw new Rar5CorruptedDataException("Invalid repeat symbol at table start");
+                        throw new RarCorruptedDataException("Invalid repeat symbol at table start");
                     }
                     v = lens[i - 1] & 0xFF;
                 }
@@ -695,16 +694,16 @@ public class Rar5LZDecoder {
         } while (i < tableSize);
 
         if (bitStream.isBlockOverRead()) {
-            throw new Rar5CorruptedDataException("Block overread after main table");
+            throw new RarCorruptedDataException("Block overread after main table");
         }
         if (bitStream.inputEofError()) {
-            throw new Rar5CorruptedDataException("Unexpected end of input while reading tables");
+            throw new RarCorruptedDataException("Unexpected end of input while reading tables");
         }
 
         int buildMode = Rar5HuffmanDecoder.HUFFMAN_BUILD_MODE_FULL_OR_EMPTY;
 
         if (!mainDecoder.build(lens, 0, buildMode)) {
-            throw new Rar5CorruptedDataException("Failed to build main Huffman decoder");
+            throw new RarCorruptedDataException("Failed to build main Huffman decoder");
         }
 
         if (!isV7) {
@@ -716,18 +715,18 @@ public class Rar5LZDecoder {
         }
 
         if (!distDecoder.build(lens, Rar5Constants.MAIN_TABLE_SIZE, buildMode)) {
-            throw new Rar5CorruptedDataException("Failed to build distance Huffman decoder");
+            throw new RarCorruptedDataException("Failed to build distance Huffman decoder");
         }
         
         if (!lenDecoder.build(lens, Rar5Constants.MAIN_TABLE_SIZE + Rar5Constants.DIST_TABLE_SIZE_MAX + Rar5Constants.ALIGN_TABLE_SIZE, buildMode)) {
-            throw new Rar5CorruptedDataException("Failed to build length Huffman decoder");
+            throw new RarCorruptedDataException("Failed to build length Huffman decoder");
         }
 
         isUseAlignBits = false;
         for (i = 0; i < Rar5Constants.ALIGN_TABLE_SIZE; i++) {
             if (lens[Rar5Constants.MAIN_TABLE_SIZE + Rar5Constants.DIST_TABLE_SIZE_MAX + i] != Rar5Constants.NUM_ALIGN_BITS) {
                 if (!alignDecoder.build(lens, Rar5Constants.MAIN_TABLE_SIZE + Rar5Constants.DIST_TABLE_SIZE_MAX, buildMode)) {
-                    throw new Rar5CorruptedDataException("Failed to build align Huffman decoder");
+                    throw new RarCorruptedDataException("Failed to build align Huffman decoder");
                 }
                 isUseAlignBits = true;
                 break;
@@ -753,7 +752,7 @@ public class Rar5LZDecoder {
      * @return {@link #SUCCESS} for normal completion,
      *         {@link #ERROR_FILTER_REQUIRED} when a filter symbol is encountered
      * @throws IOException if an I/O error occurs
-     * @throws Rar5CorruptedDataException if invalid data is encountered
+     * @throws RarCorruptedDataException if invalid data is encountered
      */
     private int processSymbols(Rar5BitDecoder bitStream) throws IOException {
         Rar5BitDecoder localBitStream = reusableBitStream;
@@ -800,7 +799,7 @@ public class Rar5LZDecoder {
                     break;
                 }
                 if (!isTableWasFilled) {
-                    throw new Rar5CorruptedDataException("Huffman table not filled");
+                    throw new RarCorruptedDataException("Huffman table not filled");
                 }
             }
             
@@ -816,7 +815,7 @@ public class Rar5LZDecoder {
                     break;
                 }
             } catch (Exception e) {
-                throw new Rar5CorruptedDataException("Main symbol decoding error", e);
+                throw new RarCorruptedDataException("Main symbol decoding error", e);
             }
 
             if (sym < 256) {
@@ -842,7 +841,7 @@ public class Rar5LZDecoder {
                     try {
                         len = lenDecoder.decode(localBitStream);
                     } catch (Exception e) {
-                        throw new Rar5CorruptedDataException("Length decoding error", e);
+                        throw new RarCorruptedDataException("Length decoding error", e);
                     }
 
                     if (len >= 8) {
@@ -876,7 +875,7 @@ public class Rar5LZDecoder {
                 try {
                     rep0 = distDecoder.decode(localBitStream);
                 } catch (Exception e) {
-                    throw new Rar5CorruptedDataException("Distance decoding error", e);
+                    throw new RarCorruptedDataException("Distance decoding error", e);
                 }
 
                 if (rep0 >= 4) {
@@ -897,7 +896,7 @@ public class Rar5LZDecoder {
                             try {
                                 alignBits = alignDecoder.decode(localBitStream);
                             } catch (Exception e) {
-                                throw new Rar5CorruptedDataException("Align bits decoding error", e);
+                                throw new RarCorruptedDataException("Align bits decoding error", e);
                             }
                             
                             rep0 += highBits << Rar5Constants.NUM_ALIGN_BITS;
@@ -926,7 +925,7 @@ public class Rar5LZDecoder {
 
                 if (rep0 > winPosTemp) {
                     if (lzSize == 0) {
-                        throw new Rar5CorruptedDataException("Invalid distance reference at start of archive");
+                        throw new RarCorruptedDataException("Invalid distance reference at start of archive");
                     }
                     
                     int back = (int)(rep0 - winPosTemp);
@@ -950,7 +949,7 @@ public class Rar5LZDecoder {
                 Rar5Utils.copyMatch((int)rep0, win, destPos, win, srcPos, curWinPos);
                 
             } else {
-                throw new Rar5CorruptedDataException("Invalid distance: " + rep0 + " exceeds dictionary size: " + dictSizeForCheck);
+                throw new RarCorruptedDataException("Invalid distance: " + rep0 + " exceeds dictionary size: " + dictSizeForCheck);
             }
         }
 
@@ -978,7 +977,7 @@ public class Rar5LZDecoder {
      * @return {@code true} if decompression completed successfully,
      *         {@code false} if the stream ended prematurely or with minor errors
      * @throws IOException if an I/O error occurs
-     * @throws Rar5CorruptedDataException if invalid data is encountered
+     * @throws RarCorruptedDataException if invalid data is encountered
      */
     private boolean processBlocks() throws IOException {
         Rar5BitDecoder bitStream = new Rar5BitDecoder();
@@ -1106,7 +1105,7 @@ public class Rar5LZDecoder {
      * output size matches the expected size when defined.</p>
      * 
      * @throws IOException if an I/O error occurs
-     * @throws Rar5CorruptedDataException if decompression fails or size mismatches
+     * @throws RarCorruptedDataException if decompression fails or size mismatches
      */
     private void processFile() throws IOException {
         isUnsupportedFilter = false;
@@ -1128,7 +1127,7 @@ public class Rar5LZDecoder {
         }
 
         if (success && isUnpackedSizeDefined && writtenFileSize != unpackedSize) {
-            throw new Rar5CorruptedDataException("Output size mismatch: expected " + unpackedSize + ", got " + writtenFileSize);
+            throw new RarCorruptedDataException("Output size mismatch: expected " + unpackedSize + ", got " + writtenFileSize);
         }
     }
 
@@ -1153,7 +1152,7 @@ public class Rar5LZDecoder {
      * @param unpackedSizeParam the expected uncompressed size (can be null if unknown)
      * @param progressBar optional progress bar for UI feedback (can be null)
      * @throws IOException if an I/O error occurs during reading or writing
-     * @throws Rar5CorruptedDataException if the archive data is corrupted or malformed
+     * @throws RarCorruptedDataException if the archive data is corrupted or malformed
      * @throws UnsupportedOperationException if an unsupported filter type is encountered
      * @throws OutOfMemoryError if memory allocation fails for buffers
      */

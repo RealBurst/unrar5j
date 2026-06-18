@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.util;
+package be.stef.rar.util;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 
 /**
- * InputStream qui limite la lecture à une portion spécifique d'un RandomAccessFile.
+ * InputStream that limits reads to a specific region of a RandomAccessFile.
  */
 public class BoundedInputStream extends InputStream {
     private final RandomAccessFile file;

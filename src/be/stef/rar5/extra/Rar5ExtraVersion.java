@@ -15,8 +15,8 @@
  */
 package be.stef.rar5.extra;
 
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 
 /**
  * File version information from a RAR5 file's extra area.

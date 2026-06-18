@@ -29,7 +29,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-import be.stef.rar5.exceptions.Rar5DecryptException;
+import be.stef.rar.exceptions.RarDecryptException;
 import be.stef.rar5.extra.Rar5ExtraCrypto;
 
 
@@ -88,18 +88,18 @@ public final class Rar5Crypto {
      * @throws Exception if key derivation fails
      */
     public static Rar5DerivedKeys deriveAllKeys(String password, byte[] salt, int kdfIterationExponent) throws Exception {
-        // 1. Calculer le nombre d'itérations : 2 ^ kdfIterationExponent
+        // 1. Compute the iteration count: 2 ^ kdfIterationExponent
         int iterations = 1 << kdfIterationExponent;
         
-        // 2. Définir la longueur totale de la clé à dériver : 32 bytes (AES Key) + 32 bytes (Hash Key) = 64 bytes (512 bits)
+        // 2. Total derived key length: 32 bytes (AES key) + 32 bytes (hash key) = 64 bytes (512 bits)
         int totalKeyLengthBits = 64 * 8; 
         
-        // 3. Appeler PBKDF2 une seule fois (Dérivation contiguë)
+        // 3. Call PBKDF2 once (contiguous derivation)
         PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, totalKeyLengthBits);
         SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256"); 
         byte[] totalDerivedKey = skf.generateSecret(spec).getEncoded();
         
-        // 4. Séparer les clés
+        // 4. Split the keys
         byte[] aesKey = Arrays.copyOfRange(totalDerivedKey, 0, 32);
         byte[] hashKey = Arrays.copyOfRange(totalDerivedKey, 32, 64);
         
@@ -161,9 +161,9 @@ public final class Rar5Crypto {
             return true; // Cannot verify if corrupted
         }
         
-        // 2. Calcul du PBKDF2 complet (Base + 32 itérations)
+        // 2. Full PBKDF2 computation (base + 32 iterations)
         int baseIterations = 1 << crypto.getKdfIterationExponent();
-        // On utilise directement l'implémentation standard Java qui fonctionne très bien
+        // Use the standard Java implementation directly (works fine here)
         byte[] fullHash = pbkdf2Sha256(password, crypto.getSalt(), baseIterations + PSW_CHECK_OFFSET, KEY_SIZE);
         
         if (debug) {
@@ -171,7 +171,7 @@ public final class Rar5Crypto {
         }
 
         // 3. XOR "Folding"
-        // On réduit les 32 octets en 8 octets en les superposant par XOR
+        // Fold the 32 bytes into 8 bytes by XOR-ing them together
         byte[] calculatedCheck = new byte[PSW_CHECK_SIZE];
         for (int i = 0; i < KEY_SIZE; i++) {
             calculatedCheck[i % PSW_CHECK_SIZE] ^= fullHash[i];
@@ -251,7 +251,7 @@ public final class Rar5Crypto {
      */
     public static byte[] decrypt(byte[] encryptedData, byte[] key, byte[] iv) throws Exception {
         if (encryptedData.length % 16 != 0) {
-            throw new Rar5DecryptException("Encrypted data size must be multiple of 16 bytes, got: " + encryptedData.length);
+            throw new RarDecryptException("Encrypted data size must be multiple of 16 bytes, got: " + encryptedData.length);
         }
         
         Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
@@ -336,7 +336,7 @@ public final class Rar5Crypto {
      */
     public static class DerivedKeys {
         private final byte[] encryptionKey;
-        private final byte[] hashMacKey; // Utilisée pour HashKey (CRC XOR) et MAC
+        private final byte[] hashMacKey; // Used for HashKey (CRC XOR) and MAC
 
         public DerivedKeys(byte[] encryptionKey, byte[] hashMacKey) {
             this.encryptionKey = encryptionKey;
@@ -376,7 +376,7 @@ public final class Rar5Crypto {
      */
     public static DerivedKeys deriveKeys(String password, Rar5ExtraCrypto crypto) throws Exception {
         if (crypto.getAlgorithm() != 0) {
-            throw new Rar5DecryptException("Unsupported encryption algorithm: " + crypto.getAlgorithm());
+            throw new RarDecryptException("Unsupported encryption algorithm: " + crypto.getAlgorithm());
         }
         
         int iterations = 1 << crypto.getKdfIterationExponent();
@@ -388,9 +388,9 @@ public final class Rar5Crypto {
         KeySpec spec = new PBEKeySpec(password.toCharArray(), crypto.getSalt(), iterations, totalKeyLengthBits);
         byte[] totalDerivedKey = factory.generateSecret(spec).getEncoded();
         
-        // Séparer les clés (la dérivation contiguë génère la séquence correcte)
+        // Split the keys (contiguous derivation yields the correct sequence)
         byte[] encKey = Arrays.copyOfRange(totalDerivedKey, 0, 32);
-        byte[] hashKey = Arrays.copyOfRange(totalDerivedKey, 32, 64); // Clé utilisée pour CRC XOR et MAC
+        byte[] hashKey = Arrays.copyOfRange(totalDerivedKey, 32, 64); // key used for CRC XOR and MAC
         
         return new DerivedKeys(encKey, hashKey);
     }
@@ -462,32 +462,32 @@ public final class Rar5Crypto {
 
 
     /**
-     * Transforme le CRC brut calculé en un MAC vérifiable stocké dans l'en-tête.
+     * Transforms the computed raw CRC into a verifiable MAC stored in the header.
      */
     public static boolean verifyCrcWithHMAC(long calculatedCrc, long expectedCrc, byte[] hashKey) {
         try {
-            // 1. Préparer le CRC brut (Calculated) en Little Endian (RawPut4)
+            // 1. Prepare the raw (calculated) CRC in little-endian (RawPut4)
             byte[] rawCrc = ByteBuffer.allocate(4)
                                       .order(ByteOrder.LITTLE_ENDIAN)
                                       .putInt((int) calculatedCrc)
                                       .array();
 
-            // 2. Initialiser HMAC-SHA256 avec la HashKey (N+16)
+            // 2. Initialize HMAC-SHA256 with the HashKey (N+16)
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(hashKey, "HmacSHA256"));
             
-            // 3. Calculer le Digest (hmac_sha256(Key, ..., RawCRC, ...))
+            // 3. Compute the digest (hmac_sha256(Key, ..., RawCRC, ...))
             byte[] digest = mac.doFinal(rawCrc);
             
-            // 4. Replier le digest 32 octets en un entier 4 octets
+            // 4. Fold the 32-byte digest into a 4-byte integer
             int finalHmacCrc = 0;
             for (int i = 0; i < digest.length; i++) {
-                // XOR de l'octet du digest à la position correspondante (0, 8, 16 ou 24 bits)
+                // XOR the digest byte at the matching position (0, 8, 16 or 24 bits)
                 finalHmacCrc ^= (digest[i] & 0xFF) << ((i & 3) * 8);
             }
             
-            // 5. Comparer avec le CRC attendu stocké dans l'archive
-            // On convertit en long pour éviter les problèmes de signe à l'affichage/comparaison
+            // 5. Compare with the expected CRC stored in the archive
+            // Convert to long to avoid sign issues during display/comparison
             return (finalHmacCrc & 0xFFFFFFFFL) == expectedCrc;
             
         } catch (Exception e) {

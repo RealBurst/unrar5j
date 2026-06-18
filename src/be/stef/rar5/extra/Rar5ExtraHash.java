@@ -15,10 +15,10 @@
  */
 package be.stef.rar5.extra;
 
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.Rar5Constants;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * File hash information from a RAR5 file's extra area.
@@ -63,13 +63,13 @@ public class Rar5ExtraHash {
                 if (pos + BLAKE2SP_HASH_SIZE > end) {
                     return false;
                 }
-                hash = Rar5Utils.copyBytes(data, pos, BLAKE2SP_HASH_SIZE);
+                hash = Utils.copyBytes(data, pos, BLAKE2SP_HASH_SIZE);
                 pos += BLAKE2SP_HASH_SIZE;
             } else {
                 // Unknown hash type - read all remaining bytes
                 int remaining = end - pos;
                 if (remaining > 0) {
-                    hash = Rar5Utils.copyBytes(data, pos, remaining);
+                    hash = Utils.copyBytes(data, pos, remaining);
                     pos = end;
                 }
             }

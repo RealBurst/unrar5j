@@ -20,8 +20,8 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-import be.stef.rar5.exceptions.Rar5DecryptException;
-import be.stef.rar5.util.Rar5Utils;
+import be.stef.rar.exceptions.RarDecryptException;
+import be.stef.rar.util.Utils;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -80,15 +80,15 @@ public class Rar5HeaderDecryptor {
      * 
      * @param encryptedData the encrypted archive data
      * @return the decrypted archive data
-     * @throws Rar5DecryptException if decryption fails
+     * @throws RarDecryptException if decryption fails
      */
-    public byte[] decrypt(byte[] encryptedData) throws Rar5DecryptException {
+    public byte[] decrypt(byte[] encryptedData) throws RarDecryptException {
         try {
             return decryptInternal(encryptedData);
-        } catch (Rar5DecryptException e) {
+        } catch (RarDecryptException e) {
             throw e;
         } catch (Exception e) {
-            throw new Rar5DecryptException("Decryption error: " + e.getMessage(), e);
+            throw new RarDecryptException("Decryption error: " + e.getMessage(), e);
         }
     }
     
@@ -97,9 +97,9 @@ public class Rar5HeaderDecryptor {
      * 
      * @param inputPath path to the encrypted archive
      * @param outputPath path for the decrypted archive
-     * @throws Rar5DecryptException if decryption fails
+     * @throws RarDecryptException if decryption fails
      */
-    public void decryptToFile(String inputPath, String outputPath) throws Rar5DecryptException {
+    public void decryptToFile(String inputPath, String outputPath) throws RarDecryptException {
         try {
             byte[] encrypted = Files.readAllBytes(new File(inputPath).toPath());
             
@@ -109,7 +109,7 @@ public class Rar5HeaderDecryptor {
                 fos.write(decrypted);
             }
         } catch (IOException e) {
-            throw new Rar5DecryptException("I/O error: " + e.getMessage(), e);
+            throw new RarDecryptException("I/O error: " + e.getMessage(), e);
         }
     }
     
@@ -164,7 +164,7 @@ public class Rar5HeaderDecryptor {
             sb.append("  KDF: PBKDF2-HMAC-SHA256\n");
             sb.append("  Iterations: 2^").append(temp.kdfIterationExponent);
             sb.append(" = ").append(1 << temp.kdfIterationExponent).append("\n");
-            sb.append("  Salt: ").append(Rar5Utils.bytesToHexCompact(temp.salt)).append("\n");
+            sb.append("  Salt: ").append(Utils.bytesToHexCompact(temp.salt)).append("\n");
             return sb.toString();
         } catch (Exception e) {
             return "Error reading encryption info: " + e.getMessage();
@@ -174,7 +174,7 @@ public class Rar5HeaderDecryptor {
     private byte[] decryptInternal(byte[] data) throws Exception {
         // Verify signature
         if (!checkSignature(data)) {
-            throw new Rar5DecryptException("Invalid RAR5 signature");
+            throw new RarDecryptException("Invalid RAR5 signature");
         }
         
         // Parse encryption header
@@ -199,7 +199,7 @@ public class Rar5HeaderDecryptor {
         return true;
     }
     
-    private int parseEncryptionHeader(byte[] data) throws Rar5DecryptException {
+    private int parseEncryptionHeader(byte[] data) throws RarDecryptException {
         int offset = Rar5Constants.RAR5_SIGNATURE.length;
         
         // CRC (4 bytes)
@@ -213,7 +213,7 @@ public class Rar5HeaderDecryptor {
         // Type (VInt)
         long[] typeResult = readVIntArray(data, offset);
         if (typeResult[0] != Rar5Constants.BLOCK_TYPE_ARC_ENCRYPT) {
-            throw new Rar5DecryptException("Archive does not have encrypted headers");
+            throw new RarDecryptException("Archive does not have encrypted headers");
         }
         offset += (int) typeResult[1];
         
@@ -226,7 +226,7 @@ public class Rar5HeaderDecryptor {
         int version = (int) versionResult[0];
         offset += (int) versionResult[1];
         if (version != 0) {
-            throw new Rar5DecryptException("Unsupported encryption version: " + version);
+            throw new RarDecryptException("Unsupported encryption version: " + version);
         }
         
         // Encryption flags (VInt)
@@ -304,10 +304,10 @@ public class Rar5HeaderDecryptor {
             long[] sizeResult = readVIntArray(decFirst, 4);
             long headerSize = sizeResult[0];
             long totalSize = 4 + sizeResult[1] + headerSize;
-            long encSize = Rar5Utils.alignToAesBlock(totalSize);
+            long encSize = Utils.alignToAesBlock(totalSize);
             
             if (pos + encSize > data.length) {
-                encSize = Rar5Utils.alignToAesBlock(data.length - pos);
+                encSize = Utils.alignToAesBlock(data.length - pos);
                 if (encSize == 0) {
                     break;
                 }

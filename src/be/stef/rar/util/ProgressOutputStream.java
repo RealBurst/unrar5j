@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.util;
+package be.stef.rar.util;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * OutputStream qui affiche la progression sur la même ligne.
+ * OutputStream that displays progress on a single line.
  */
 public class ProgressOutputStream extends FilterOutputStream {
     private final long totalSize;
@@ -53,7 +53,7 @@ public class ProgressOutputStream extends FilterOutputStream {
         
         int percent = (int) ((bytesWritten * 100) / totalSize);
         
-        // N'affiche que si le pourcentage change
+        // Print only when the percentage changes
         if (percent != lastPercent) {
             lastPercent = percent;
             printProgress(percent);
@@ -61,7 +61,7 @@ public class ProgressOutputStream extends FilterOutputStream {
     }
     
     private void printProgress(int percent) {
-        // Barre de progression visuelle
+        // Visual progress bar
         int barWidth = 30;
         int filled = (percent * barWidth) / 100;
         
@@ -71,22 +71,22 @@ public class ProgressOutputStream extends FilterOutputStream {
         }
         bar.append("]");
         
-        // \r revient au début de la ligne
+        // \r returns to the beginning of the line
         System.out.printf("\r%s %s %3d%% (%s)", bar, formatSize(bytesWritten), percent, truncateFileName(fileName, 30));
     }
     
     /**
-     * Appelé à la fin pour passer à la ligne suivante.
+     * Called at the end to move to the next line.
      */
     public void finish() {
-        System.out.println(); // Nouvelle ligne après complétion
+        System.out.println(); // New line after completion
     }
     
     private static String formatSize(long bytes) {
         if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.1f Ko", bytes / 1024.0);
-        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f Mo", bytes / (1024.0 * 1024));
-        return String.format("%.2f Go", bytes / (1024.0 * 1024 * 1024));
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
     
     private static String truncateFileName(String name, int maxLen) {

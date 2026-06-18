@@ -13,25 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.exceptions;
+package be.stef.rar.util;
 
-import java.io.IOException;
+import java.io.OutputStream;
 
 /**
- * Exception thrown when RAR5 archive data is corrupted or malformed.
+ * OutputStream that discards everything written to it.
+ *
+ * <p>Used when a solid-archive entry must still be decoded to keep the
+ * decoder state consistent, but its output is not written to disk.</p>
+ *
+ * @author Stef
+ * @since 1.0
  */
-public class Rar5CorruptedDataException extends IOException {
-    private static final long serialVersionUID = 1L;
+public class NullOutputStream extends OutputStream {
 
-    public Rar5CorruptedDataException() {
-        super("Corrupted RAR5 data");
+    @Override
+    public void write(int b) {
+        // discarded
     }
-    
-    public Rar5CorruptedDataException(String message) {
-        super(message);
-    }
-    
-    public Rar5CorruptedDataException(String message, Throwable cause) {
-        super(message, cause);
+
+    @Override
+    public void write(byte[] b, int off, int len) {
+        // discarded
     }
 }

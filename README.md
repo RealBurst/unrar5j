@@ -1,6 +1,7 @@
 # unrar5j
 
-A pure Java RAR5 extractor with no native dependencies.
+A pure Java extractor for RAR archives, handling both RAR4 and RAR5, with no
+native dependencies.
 
 ```
                          ___
@@ -15,132 +16,123 @@ A pure Java RAR5 extractor with no native dependencies.
 
 ## Features
 
-- **Pure Java** — No native libraries or JNI required
-- **RAR5 Format** — Full support for the modern RAR5 archive format
-- **Encryption** — AES-256 decryption with PBKDF2-HMAC-SHA256 key derivation
-- **Header Encryption** — Support for encrypted file names and headers
-- **Compression** — LZ77-based decompression with Huffman coding
-- **Filters** — DELTA, E8, E8E9 (x86), and ARM filter support
-- **Solid Archives** — Proper handling of solid compression
-- **CRC32 Verification** — Integrity check on extracted files
+- Pure Java, no native libraries or JNI
+- RAR4 and RAR5, detected automatically
+- AES decryption, including encrypted file names and headers
+- Solid archives and multi-volume sets
+- DELTA, E8, E8E9 and ARM filters
+- CRC32 verification on extracted files
+- Path traversal protection on output names
 
 ## Requirements
 
 - Java 8 or higher
 - No external dependencies
 
-## Command Line Usage
+## Command line usage
+
+The `Unrar5j` entry point detects the format (RAR4 or RAR5) on its own, so
+you never have to say which one it is.
 
 ```bash
-java -jar unrar5j.jar myarchive.rar [-o outputDir] [-p password]
+java -jar unrar5j.jar myarchive.rar [-o outputDir] [-p password] [-f filename]
 ```
 
 ### Examples
 
 ```bash
-# Extract archive
+# Extract to the current directory
 java -jar unrar5j.jar myarchive.rar
 
-# Extract archive to specified directory
+# Extract to a chosen directory
 java -jar unrar5j.jar myarchive.rar -o ./output
 
-# Extract encrypted archive
+# Extract an encrypted archive
 java -jar unrar5j.jar encrypted.rar -p mysecretpassword
+
+# Extract a single entry by its path inside the archive
+java -jar unrar5j.jar myarchive.rar -f "docs/report with spaces.pdf"
 ```
 
-### Linux/macOS
+For a multi-volume set, pass any volume (for example part01.rar). The tool finds
+the first volume and walks forward through the rest.
 
-```bash
-chmod +x unrar5j
-./unrar5j myarchive.rar
-./unrar5j myarchive.rar -o ./output
-./unrar5j encrypted.rar -p mysecretpassword
-```
-
-## Library Usage
-
-### Extract an archive
+## Library usage
 
 ```java
-import be.stef.rar5.Unrar5j;
-import be.stef.rar5.ExtractionResult;
+import be.stef.rar.Unrar5j;
+import be.stef.rar.ExtractionResult;
 
-// Extract without password
-ExtractionResult result = Unrar5j.extract(
-    "archive.rar",
-    "output_directory",
-    null
-);
+// Extract without a password
+ExtractionResult result = Unrar5j.extract("archive.rar", "output", null);
 
-// Extract with password
-ExtractionResult result = Unrar5j.extract(
-    "encrypted.rar",
-    "output_directory",
-    "mypassword"
-);
+// Extract with a password
+ExtractionResult enc = Unrar5j.extract("encrypted.rar", "output", "mypassword");
 
-// Check results
+// Extract a single entry
+ExtractionResult one = Unrar5j.extract("archive.rar", "output", null, "docs/report.pdf");
+
 System.out.println("Extracted: " + result.successCount + "/" + result.totalFiles);
 if (result.errorCount > 0) {
-    result.print();  // Print error details
+    result.print();
 }
 ```
 
-### Read archive contents
+A few things worth knowing when embedding the library:
 
-```java
-import be.stef.rar5.Rar5Reader;
-import be.stef.rar5.blocks.Rar5FileBlock;
+- `Unrar5j.detectFormat(path)` returns FORMAT_RAR4, FORMAT_RAR5 or FORMAT_UNKNOWN.
+- `Unrar5j.isEncrypted(path)` tells you whether to prompt for a password.
+- After extraction, `result.passwordStatus` is 2 when the password was wrong.
+- Set `Unrar4j.showProgress = false` and `Unrar5j.showProgress = false` to silence the console progress bar.
 
-Rar5Reader reader = new Rar5Reader();
-reader.read(new File("archive.rar"));
+## Supported features
 
-for (Rar5FileBlock file : reader.getFileBlocks()) {
-    System.out.println(file.getFileName());
-    System.out.println("  Size: " + file.getUnpackedSize());
-    System.out.println("  Compressed: " + file.getDataSize());
-    System.out.println("  Encrypted: " + file.isEncrypted());
-}
-```
+| Feature                     | RAR4    | RAR5    |
+|-----------------------------|---------|---------|
+| Store (no compression)      | Yes     | Yes     |
+| Compressed extraction       | Yes     | Yes     |
+| Solid archives              | Yes     | Yes     |
+| Multi-volume sets           | Yes     | Yes     |
+| AES encryption (data)       | Yes     | Yes     |
+| Encrypted headers and names | Yes     | Yes     |
+| Encrypted multi-volume      | Yes     | Yes     |
+| CRC32 verification          | Yes     | Yes     |
+| DELTA / E8 / E8E9 filters   | Yes     | Yes     |
+| ARM filter                  | n/a     | Yes     |
+| PPMd method                 | No      | n/a     |
+| Recovery records            | No      | No      |
+| BLAKE2 hash verification    | n/a     | No      |
 
-## Supported Features
+## What is not supported
 
-| Feature | Status |
-|---------|--------|
-| Store (no compression) | ✅ |
-| LZ compression | ✅ |
-| AES-256 encryption | ✅ |
-| Encrypted headers | ✅ |
-| Encrypted file names | ✅ |
-| DELTA filter | ✅ |
-| E8/E8E9 filter (x86) | ✅ |
-| ARM filter | ✅ |
-| Solid archives | ✅ |
-| CRC32 verification | ✅ |
-| Multi-volume archives | ⚠️ Partial |
-| Recovery records | ❌ |
-| BLAKE2 hash verification | ❌ |
-| RAR4 format | ❌ |
+- Creating or modifying archives. This is a reader only.
+- The RAR4 PPMd method (0x35).
+- The rarer RAR4 VM filters (ITANIUM, RGB, AUDIO, UPCASE).
+- Archive comments and recovery records are skipped rather than exposed.
 
+## Remarks
+
+Unrar5j may still contain bugs. If you find one, please let me know and, if possible, send me a link to the archive.
 
 ## Building
 
 ```bash
 # Compile
-javac -d bin src/be/stef/rar5/*.java src/be/stef/rar5/**/*.java
+javac -encoding UTF-8 -d bin $(find be -name "*.java")
 
-# Create JAR
-jar cfe unrar5j.jar be.stef.rar5.Unrar5j -C bin .
+# Create an executable JAR
+jar cfe unrar5j.jar be.stef.rar.Unrar5j -C bin .
 ```
 
 ## License
 
-Apache License 2.0 — See [LICENSE](LICENSE)
+Apache License 2.0. See [LICENSE](LICENSE) and the NOTICE file.
+
+This is a decompression-only implementation. The RAR formats were created by
+Alexander Roshal, and the RAR compression algorithm is proprietary; this code
+must not be used to build a RAR-compatible compressor.
 
 ## Author
 
-**Stéphane BURY**
+St�phane BURY
 
-## Acknowledgments
-
-7-Zip by Igor Pavlov was a valuable reference for troubleshooting some decompression challenges.

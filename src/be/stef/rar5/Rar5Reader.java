@@ -20,6 +20,9 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
+import be.stef.rar.util.Utils;
+import be.stef.rar.util.VInt;
+import be.stef.rar.util.VIntReader;
 import be.stef.rar5.blocks.Rar5Block;
 import be.stef.rar5.blocks.Rar5EncryptionBlock;
 import be.stef.rar5.blocks.Rar5EndBlock;
@@ -28,9 +31,6 @@ import be.stef.rar5.blocks.Rar5MainArchiveBlock;
 import be.stef.rar5.blocks.Rar5ServiceBlock;
 import be.stef.rar5.crypto.Rar5Crypto;
 import be.stef.rar5.extra.Rar5ExtraCrypto;
-import be.stef.rar5.util.Rar5Utils;
-import be.stef.rar5.util.VInt;
-import be.stef.rar5.util.VIntReader;
 
 /**
  * Reader for RAR5 archive structure.
@@ -246,7 +246,7 @@ public class Rar5Reader {
             if (pos + 4 > data.length) {
                 return null;
             }
-            long crc32 = Rar5Utils.readUInt32LE(data, pos);
+            long crc32 = Utils.readUInt32LE(data, pos);
             pos += 4;
             
             // Header size (VInt)
@@ -334,7 +334,7 @@ public class Rar5Reader {
             }
             
             // CRC32 (4 bytes)
-            long crc32 = Rar5Utils.readUInt32LE(prefix, 0);
+            long crc32 = Utils.readUInt32LE(prefix, 0);
             int offset = 4;
             
             // Header size (VInt)

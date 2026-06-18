@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package be.stef.rar5.util;
+package be.stef.rar.util;
 
 import java.util.Arrays;
-import be.stef.rar5.decompress.Rar5BitDecoder;
 
 /**
- * Utility methods for RAR5 archive processing.
+ * Common byte and array utility methods shared across RAR4 and RAR5
+ * processing.
  * 
- * <p>This class provides common byte manipulation and conversion methods
- * used throughout the jRar5Unpacker library.</p>
+ * <p>Pure helpers (no dependency on any format-specific type): little-endian
+ * reads/writes, hex formatting, array copies and zeroing.</p>
  * 
  * @author Stef
  * @since 1.0
  */
-public final class Rar5Utils {
+public final class Utils {
     
-    private Rar5Utils() {
+    private Utils() {
         // Utility class - no instantiation
     }
     
@@ -87,23 +87,6 @@ public final class Rar5Utils {
                ((long) (data[offset + 3] & 0xFF) << 24);
     }
     
-    /**
-     * Reads a 32-bit unsigned integer from the bit stream.
-     * 
-     * @param bi the bit decoder
-     * @return the 32-bit value
-     */
-    public static int readUInt32(Rar5BitDecoder bi) {
-        int numBits = (bi.readBits9Fix(2) * 8) + 8;
-        int v = 0;
-        int i = 0;
-        do {
-            v += bi.readBits9Fix(8) << i;
-            i += 8;
-        } while (i != numBits);
-        return v;
-    }
-
     /**
      * Reads a 64-bit unsigned integer in little-endian byte order.
      * 
@@ -173,7 +156,6 @@ public final class Rar5Utils {
         return result;
     }
     
-//    /**
     /**
      * Fills a portion of an array with zeros.
      * 
@@ -192,35 +174,6 @@ public final class Rar5Utils {
      */
     public static void zeroMemory(byte[] array) {
         Arrays.fill(array, (byte) 0);
-    }
-    
-    /**
-     * Copies bytes for match decoding.
-     * 
-     * @param offset not used (kept for API compatibility)
-     * @param dest destination array
-     * @param destPos destination position
-     * @param src source array
-     * @param srcPos source position
-     * @param lim limit position
-     */
-    public static void copyMatch(int offset, byte[] dest, int destPos, byte[] src, int srcPos, int lim) {
-        int len = lim - destPos;
-        for (int i = 0; i < len; i++) {
-            dest[destPos++] = src[srcPos++];
-        }
-    }
-    
-    /**
-     * Converts a slot value to a length using bit stream.
-     * 
-     * @param bitStream the bit stream to read from
-     * @param slot the slot value
-     * @return the decoded length
-     */
-    public static int slotToLen(Rar5BitDecoder bitStream, int slot) {
-        int numBits = (slot >> 2) - 1;
-        return ((4 | (slot & 3)) << numBits) + bitStream.readBits9(numBits);
     }
     
 }
