@@ -21,8 +21,10 @@ jobs:
         server-id: central
         server-username: CENTRAL_USERNAME
         server-password: CENTRAL_PASSWORD
-        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-        gpg-passphrase: GPG_PASSPHRASE
+    
+    - name: Import GPG key
+      if: github.event_name == 'release'
+      run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
     
     - name: Determine version
       id: version
@@ -74,6 +76,10 @@ jobs:
           unrar5j-${{ steps.version.outputs.VERSION }}-sources.jar
           unrar5j-${{ steps.version.outputs.VERSION }}-javadoc.jar
     
+    - name: Set pom version
+      if: github.event_name == 'release'
+      run: sed -i 's|\${project.version}|${{ steps.version.outputs.VERSION }}|g' pom.xml
+    
     - name: Sign and publish to Maven Central
       if: github.event_name == 'release'
       run: |
@@ -90,4 +96,3 @@ jobs:
       env:
         CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
         CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-        GPG_PASSPHRASE: ""
