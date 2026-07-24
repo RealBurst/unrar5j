@@ -74,15 +74,13 @@ jobs:
           unrar5j-${{ steps.version.outputs.VERSION }}-sources.jar
           unrar5j-${{ steps.version.outputs.VERSION }}-javadoc.jar
     
-    - name: Set pom version
-      if: github.event_name == 'release'
-      run: sed -i 's|\${project.version}|${{ steps.version.outputs.VERSION }}|g' pom.xml
-    
     - name: Sign and publish to Maven Central
       if: github.event_name == 'release'
       run: |
         VERSION=${{ steps.version.outputs.VERSION }}
         mvn --batch-mode gpg:sign-and-deploy-file \
+          -Dgpg.passphrase="" \
+          -Dgpg.keyname=30F4B198 \
           -Dfile=unrar5j-${VERSION}.jar \
           -Dsources=unrar5j-${VERSION}-sources.jar \
           -Djavadoc=unrar5j-${VERSION}-javadoc.jar \
