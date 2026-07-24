@@ -124,6 +124,22 @@ javac -encoding UTF-8 -d bin $(find be -name "*.java")
 jar cfe unrar5j.jar be.stef.rar.Unrar5j -C bin .
 ```
 
+## Maven
+
+```xml
+<dependency>
+  <groupId>io.github.realburst</groupId>
+  <artifactId>unrar5j</artifactId>
+  <version>v2.0.1</version>
+</dependency>
+```
+
+## Gradle
+
+```
+implementation("io.github.realburst:unrar5j:v2.0.1")
+```
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE) and the NOTICE file.
