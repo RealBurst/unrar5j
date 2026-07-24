@@ -24,7 +24,9 @@ jobs:
     
     - name: Import GPG key
       if: github.event_name == 'release'
-      run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+      run: |
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
     
     - name: Determine version
       id: version
