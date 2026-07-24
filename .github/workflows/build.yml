@@ -88,10 +88,10 @@ jobs:
         VERSION=${{ steps.version.outputs.VERSION }}
 
         # Signer tous les fichiers
-        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}.jar
-        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-sources.jar
-        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-javadoc.jar
-        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign pom.xml
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}.jar
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-sources.jar
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-javadoc.jar
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign pom.xml
 
         # Renommer la signature du pom
         mv pom.xml.asc unrar5j-${VERSION}.pom.asc
