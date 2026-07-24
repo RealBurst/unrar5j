@@ -88,7 +88,7 @@ jobs:
         VERSION=${{ steps.version.outputs.VERSION }}
         mvn --batch-mode gpg:sign-and-deploy-file \
           -Dgpg.passphrase="" \
-          -Dgpg.keyname=30F4B198 \
+          -Dgpg.keyname=9D24A99E30F4B198 \
           -Dfile=unrar5j-${VERSION}.jar \
           -Dsources=unrar5j-${VERSION}-sources.jar \
           -Djavadoc=unrar5j-${VERSION}-javadoc.jar \
