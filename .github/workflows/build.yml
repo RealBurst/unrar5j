@@ -1,11 +1,9 @@
 name: Build JAR
-
 on:
   push:
     branches: [ main ]
   release:
     types: [ created ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,6 +18,11 @@ jobs:
       with:
         java-version: '8'
         distribution: 'temurin'
+        server-id: central
+        server-username: CENTRAL_USERNAME
+        server-password: CENTRAL_PASSWORD
+        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+        gpg-passphrase: GPG_PASSPHRASE
     
     - name: Determine version
       id: version
@@ -44,6 +47,18 @@ jobs:
         echo "" >> MANIFEST.MF
         jar cfm unrar5j-${VERSION}.jar MANIFEST.MF -C bin .
     
+    - name: Create sources JAR
+      run: |
+        VERSION=${{ steps.version.outputs.VERSION }}
+        jar cf unrar5j-${VERSION}-sources.jar -C src .
+    
+    - name: Create javadoc JAR
+      run: |
+        VERSION=${{ steps.version.outputs.VERSION }}
+        mkdir -p javadoc
+        find src -name "*.java" | xargs javadoc -d javadoc -quiet 2>/dev/null || true
+        jar cf unrar5j-${VERSION}-javadoc.jar -C javadoc .
+    
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -54,4 +69,27 @@ jobs:
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
-        files: unrar5j-${{ steps.version.outputs.VERSION }}.jar
+        files: |
+          unrar5j-${{ steps.version.outputs.VERSION }}.jar
+          unrar5j-${{ steps.version.outputs.VERSION }}-sources.jar
+          unrar5j-${{ steps.version.outputs.VERSION }}-javadoc.jar
+    
+    - name: Set pom version
+      if: github.event_name == 'release'
+      run: sed -i 's|\${project.version}|${{ steps.version.outputs.VERSION }}|g' pom.xml
+    
+    - name: Sign and publish to Maven Central
+      if: github.event_name == 'release'
+      run: |
+        VERSION=${{ steps.version.outputs.VERSION }}
+        mvn --batch-mode gpg:sign-and-deploy-file \
+          -Dfile=unrar5j-${VERSION}.jar \
+          -Dsources=unrar5j-${VERSION}-sources.jar \
+          -Djavadoc=unrar5j-${VERSION}-javadoc.jar \
+          -DpomFile=pom.xml \
+          -DrepositoryId=central \
+          -Durl=https://central.sonatype.com/api/v1/publisher/upload
+      env:
+        CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+        CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+        GPG_PASSPHRASE: ""
