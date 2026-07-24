@@ -86,14 +86,33 @@ jobs:
       if: github.event_name == 'release'
       run: |
         VERSION=${{ steps.version.outputs.VERSION }}
-        mvn --batch-mode gpg:sign-and-deploy-file \
-          -Dgpg.keyname=9D24A99E30F4B198 \
-          -Dfile=unrar5j-${VERSION}.jar \
-          -Dsources=unrar5j-${VERSION}-sources.jar \
-          -Djavadoc=unrar5j-${VERSION}-javadoc.jar \
-          -DpomFile=pom.xml \
-          -DrepositoryId=central \
-          -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/
+
+        # Signer tous les fichiers
+        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}.jar
+        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-sources.jar
+        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-javadoc.jar
+        gpg --batch --yes --keyname 9D24A99E30F4B198 --armor --detach-sign pom.xml
+
+        # Renommer la signature du pom
+        mv pom.xml.asc unrar5j-${VERSION}.pom.asc
+        cp pom.xml unrar5j-${VERSION}.pom
+
+        # Créer le bundle zip
+        zip bundle.zip \
+          unrar5j-${VERSION}.jar \
+          unrar5j-${VERSION}.jar.asc \
+          unrar5j-${VERSION}-sources.jar \
+          unrar5j-${VERSION}-sources.jar.asc \
+          unrar5j-${VERSION}-javadoc.jar \
+          unrar5j-${VERSION}-javadoc.jar.asc \
+          unrar5j-${VERSION}.pom \
+          unrar5j-${VERSION}.pom.asc
+
+        # Uploader via API Central Portal
+        curl --fail --request POST \
+          --header "Authorization: Bearer $(echo -n '${{ secrets.CENTRAL_USERNAME }}:${{ secrets.CENTRAL_PASSWORD }}' | base64 -w 0)" \
+          --form bundle=@bundle.zip \
+          https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
       env:
         CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
         CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
