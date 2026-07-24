@@ -86,27 +86,29 @@ jobs:
       if: github.event_name == 'release'
       run: |
         VERSION=${{ steps.version.outputs.VERSION }}
+        DIR=io/github/realburst/unrar5j/${VERSION}
+        mkdir -p ${DIR}
+
+        # Copier les fichiers dans la structure de répertoire
+        cp unrar5j-${VERSION}.jar ${DIR}/
+        cp unrar5j-${VERSION}-sources.jar ${DIR}/
+        cp unrar5j-${VERSION}-javadoc.jar ${DIR}/
+        cp pom.xml ${DIR}/unrar5j-${VERSION}.pom
 
         # Signer tous les fichiers
-        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}.jar
-        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-sources.jar
-        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign unrar5j-${VERSION}-javadoc.jar
-        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign pom.xml
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign ${DIR}/unrar5j-${VERSION}.jar
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign ${DIR}/unrar5j-${VERSION}-sources.jar
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign ${DIR}/unrar5j-${VERSION}-javadoc.jar
+        gpg --batch --yes --local-user 9D24A99E30F4B198 --armor --detach-sign ${DIR}/unrar5j-${VERSION}.pom
 
-        # Renommer la signature du pom
-        mv pom.xml.asc unrar5j-${VERSION}.pom.asc
-        cp pom.xml unrar5j-${VERSION}.pom
+        # Générer les checksums MD5 et SHA1
+        for f in ${DIR}/unrar5j-${VERSION}.jar ${DIR}/unrar5j-${VERSION}-sources.jar ${DIR}/unrar5j-${VERSION}-javadoc.jar ${DIR}/unrar5j-${VERSION}.pom; do
+          md5sum $f | awk '{print $1}' > ${f}.md5
+          sha1sum $f | awk '{print $1}' > ${f}.sha1
+        done
 
-        # Créer le bundle zip
-        zip bundle.zip \
-          unrar5j-${VERSION}.jar \
-          unrar5j-${VERSION}.jar.asc \
-          unrar5j-${VERSION}-sources.jar \
-          unrar5j-${VERSION}-sources.jar.asc \
-          unrar5j-${VERSION}-javadoc.jar \
-          unrar5j-${VERSION}-javadoc.jar.asc \
-          unrar5j-${VERSION}.pom \
-          unrar5j-${VERSION}.pom.asc
+        # Créer le bundle zip avec la structure de répertoire
+        zip -r bundle.zip io/
 
         # Uploader via API Central Portal
         curl --fail --request POST \
