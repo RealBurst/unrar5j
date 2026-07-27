@@ -346,7 +346,6 @@ public class Rar5Extractor {
      * @param writeOutput if false, file is decoded but not written to disk (for solid archive skip)
      */
     private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result, boolean writeOutput) throws Exception {
-        
         // Handle directories
         if (file.isDirectory()) {
             if (writeOutput) {
@@ -382,8 +381,7 @@ public class Rar5Extractor {
         // Decompression bomb protection
         long unpackedSize = file.getUnpackedSize();
         if (maxCompressionRatio > 0 && dataSize > 0 && unpackedSize / dataSize > maxCompressionRatio) {
-            result.errors.add(buildError(file, 
-                "Compression ratio " + (unpackedSize / dataSize) + ":1 exceeds maximum allowed " + maxCompressionRatio + ":1", null));
+            result.errors.add(buildError(file, "Compression ratio " + (unpackedSize / dataSize) + ":1 exceeds maximum allowed " + maxCompressionRatio + ":1", null));
             result.errorCount++;
             return;
         }
@@ -466,6 +464,22 @@ public class Rar5Extractor {
                 }
             }
             
+            // BLAKE2sp check (if archive uses BLAKE2sp instead of / in addition to CRC32)
+            be.stef.rar5.extra.Rar5ExtraHash extraHash = file.getHash();
+            if (extraHash != null && extraHash.isBlake2sp()) {
+                try {
+                    boolean blake2ok = be.stef.rar.util.Blake2sp.verify(outFile, extraHash.getHash());
+                    if (!blake2ok) {
+                        System.out.println("BLAKE2sp mismatch for: " + file.getFileName());
+                        outFile.delete();
+                        result.errors.add(buildError(file, "BLAKE2sp mismatch - file may be corrupted.", null));
+                        result.errorCount++;
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Warning: BLAKE2sp verification failed: " + e.getMessage());
+                }
+            }
             result.successCount++;
             
         } else {
@@ -671,16 +685,12 @@ public class Rar5Extractor {
      * <p>Supported: plain archives and per-file encrypted archives (clear
      * headers). Header-encrypted (-hp) multi-volume sets are rejected earlier.</p>
      */
-    private static ExtractionResult extractMultiVolume(File firstVolume, String outputDir,
-            String password, String fileFilter, ExtractionResult result, boolean headerEncrypted) {
-
+    private static ExtractionResult extractMultiVolume(File firstVolume, String outputDir, String password, String fileFilter, ExtractionResult result, boolean headerEncrypted) {
         java.util.List<File> volumes   = discoverVolumes(firstVolume);
         java.util.List<File> tempFiles = new java.util.ArrayList<>();
-        System.out.println("Multi-volume archive: " + volumes.size() + " volume(s) found"
-                + (headerEncrypted ? " (encrypted headers)" : ""));
+        System.out.println("Multi-volume archive: " + volumes.size() + " volume(s) found" + (headerEncrypted ? " (encrypted headers)" : ""));
 
-        java.util.List<LogicalFile5> files =
-                buildLogicalFiles(volumes, password, headerEncrypted, tempFiles);
+        java.util.List<LogicalFile5> files = buildLogicalFiles(volumes, password, headerEncrypted, tempFiles);
         result.totalFiles = files.size();
 
         for (LogicalFile5 lf : files) {
@@ -740,8 +750,7 @@ public class Rar5Extractor {
                         crcOk = (calculatedCRC == expectedCRC);
                     }
                     if (!crcOk) {
-                        System.out.printf("CRC mismatch. Calculated: 0x%08X; expected: 0x%08X%n",
-                                calculatedCRC, expectedCRC);
+                        System.out.printf("CRC mismatch. Calculated: 0x%08X; expected: 0x%08X%n", calculatedCRC, expectedCRC);
                         outFile.delete();
                         result.errors.add(buildError(head, "CRC mismatch - file may be corrupted.", null));
                         result.errorCount++;
@@ -749,6 +758,23 @@ public class Rar5Extractor {
                     }
                 }
 
+                // BLAKE2sp check
+                be.stef.rar5.extra.Rar5ExtraHash extraHash = head.getHash();
+                if (extraHash != null && extraHash.isBlake2sp()) {
+                    try {
+                        boolean blake2ok = be.stef.rar.util.Blake2sp.verify(outFile, extraHash.getHash());
+                        if (!blake2ok) {
+                            System.out.println("BLAKE2sp mismatch for: " + head.getFileName());
+                            outFile.delete();
+                            result.errors.add(buildError(head, "BLAKE2sp mismatch - file may be corrupted.", null));
+                            result.errorCount++;
+                            continue;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Warning: BLAKE2sp verification failed: " + e.getMessage());
+                    }
+                }
+                
                 result.successCount++;
                 result.unpackedFiles.add(head.getFileName());
 

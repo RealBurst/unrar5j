@@ -1,107 +1,182 @@
 # unrar5j
 
-A pure Java extractor for RAR archives, handling both RAR4 and RAR5, with no
-native dependencies.
+A pure Java RAR extractor (RAR4 and RAR5) with no native dependencies.
 
 ```
-                         ___
-  _  _ _ _  _ _ __ _ _ _| __| (_)
- | || | ' \| '_/ _` | '_|__ \ | |
- \__,_|_|_||_| \__,_|_| |___//__|
+                        ___
+ _  _ _ _  _ _ __ _ _ _| __| (_)
+| || | ' \| '_/ _` | '_|__ \ | |
+\__,_|_|_||_| \__,_|_| |___//__|
 
 ```
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Java](https://img.shields.io/badge/Java-8%2B-orange.svg)](https://www.oracle.com/java/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/RealBurst/unrar5j/blob/main/LICENSE) [![Java](https://img.shields.io/badge/Java-8%2B-orange.svg)](https://www.oracle.com/java/) [![Maven Central](https://img.shields.io/badge/Maven%20Central-io.github.realburst-blue.svg)](https://central.sonatype.com/artifact/io.github.realburst/unrar5j)
 
 ## Features
 
-- Pure Java, no native libraries or JNI
-- RAR4 and RAR5, detected automatically
-- AES decryption, including encrypted file names and headers
-- Solid archives and multi-volume sets
-- DELTA, E8, E8E9 and ARM filters
-- CRC32 verification on extracted files
-- Path traversal protection on output names
+- **Pure Java** - No native libraries or JNI required
+- **RAR4 and RAR5** - Automatic format detection, no configuration needed
+- **Encryption** - AES-256 decryption with PBKDF2-HMAC-SHA256 key derivation
+- **Header Encryption** - Support for encrypted file names and headers
+- **Compression** - LZ77-based decompression with Huffman coding
+- **Filters** - DELTA, E8, E8E9 (x86), and ARM filter support
+- **Solid Archives** - Proper handling of solid compression
+- **Multi-volume archives** - Extraction across split .partNN.rar sets
+- **CRC32 Verification** - Integrity check on extracted files
+- **BLAKE2sp Verification** - Stronger integrity check when present in the archive
 
 ## Requirements
 
 - Java 8 or higher
 - No external dependencies
 
-## Command line usage
+## Installation
 
-The `Unrar5j` entry point detects the format (RAR4 or RAR5) on its own, so
-you never have to say which one it is.
+### Maven
 
-```bash
-java -jar unrar5j.jar myarchive.rar [-o outputDir] [-p password] [-f filename]
+```xml
+<dependency>
+  <groupId>io.github.realburst</groupId>
+  <artifactId>unrar5j</artifactId>
+  <version>2.0.2</version>
+</dependency>
 ```
+
+### Gradle
+
+```groovy
+implementation 'io.github.realburst:unrar5j:2.0.2'
+```
+
+## Command Line Usage
+
+```
+java -jar unrar5j.jar <archive.rar> [-o outputDir] [-p password] [-f filename]
+```
+
+The archive format (RAR4 or RAR5) is detected automatically.
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `-o <dir>` | Extract to specified directory (default: current directory) |
+| `-p <password>` | Password for encrypted archives |
+| `-f <filename>` | Extract only this specific file from the archive |
 
 ### Examples
 
-```bash
-# Extract to the current directory
-java -jar unrar5j.jar myarchive.rar
+```
+# Extract to current directory
+java -jar unrar5j.jar archive.rar
 
-# Extract to a chosen directory
-java -jar unrar5j.jar myarchive.rar -o ./output
+# Extract to a specific directory
+java -jar unrar5j.jar archive.rar -o ./output
 
 # Extract an encrypted archive
 java -jar unrar5j.jar encrypted.rar -p mysecretpassword
 
-# Extract a single entry by its path inside the archive
-java -jar unrar5j.jar myarchive.rar -f "docs/report with spaces.pdf"
+# Extract a single file from an archive
+java -jar unrar5j.jar archive.rar -f "path/to/document.pdf"
+
+# Combine options
+java -jar unrar5j.jar encrypted.rar -o ./output -p secret -f path/to/myfile.txt
 ```
 
-For a multi-volume set, pass any volume (for example part01.rar). The tool finds
-the first volume and walks forward through the rest.
+## Library Usage
 
-## Library usage
+### Extract an archive
 
 ```java
 import be.stef.rar.Unrar5j;
 import be.stef.rar.ExtractionResult;
 
-// Extract without a password
-ExtractionResult result = Unrar5j.extract("archive.rar", "output", null);
+Unrar5j unrar = new Unrar5j();
 
-// Extract with a password
-ExtractionResult enc = Unrar5j.extract("encrypted.rar", "output", "mypassword");
+// Extract without password (RAR4 or RAR5 detected automatically)
+ExtractionResult result = unrar.extract("archive.rar", "./output", null);
 
-// Extract a single entry
-ExtractionResult one = Unrar5j.extract("archive.rar", "output", null, "docs/report.pdf");
+// Extract with password
+ExtractionResult result = unrar.extract("encrypted.rar", "./output", "mypassword");
 
+// Check results
 System.out.println("Extracted: " + result.successCount + "/" + result.totalFiles);
 if (result.errorCount > 0) {
-    result.print();
+    result.print();  // Print detailed error report
+}
+
+// Check overall success
+if (result.isSuccess()) {
+    System.out.println("All files extracted successfully.");
 }
 ```
 
-A few things worth knowing when embedding the library:
+### Extract a single file
 
-- `Unrar5j.detectFormat(path)` returns FORMAT_RAR4, FORMAT_RAR5 or FORMAT_UNKNOWN.
-- `Unrar5j.isEncrypted(path)` tells you whether to prompt for a password.
-- After extraction, `result.passwordStatus` is 2 when the password was wrong.
-- Set `Unrar4j.showProgress = false` and `Unrar5j.showProgress = false` to silence the console progress bar.
+```java
+import be.stef.rar.Unrar5j;
+import be.stef.rar.ExtractionResult;
 
-## Supported features
+Unrar5j unrar = new Unrar5j();
 
-| Feature                     | RAR4    | RAR5    |
-|-----------------------------|---------|---------|
-| Store (no compression)      | Yes     | Yes     |
-| Compressed extraction       | Yes     | Yes     |
-| Solid archives              | Yes     | Yes     |
-| Multi-volume sets           | Yes     | Yes     |
-| AES encryption (data)       | Yes     | Yes     |
-| Encrypted headers and names | Yes     | Yes     |
-| Encrypted multi-volume      | Yes     | Yes     |
-| CRC32 verification          | Yes     | Yes     |
-| DELTA / E8 / E8E9 filters   | Yes     | Yes     |
-| ARM filter                  | n/a     | Yes     |
-| PPMd method                 | No      | n/a     |
-| Recovery records            | No      | No      |
-| BLAKE2 hash verification    | n/a     | No      |
+ExtractionResult result = unrar.extract("archive.rar", "./output", null, "path/to/document.pdf");
+result.print();
+```
+
+### Detect archive format
+
+```java
+import be.stef.rar.Unrar5j;
+
+int format = Unrar5j.detectFormat("archive.rar");
+if (format == Unrar5j.FORMAT_RAR5) {
+    System.out.println("RAR5 archive");
+} else if (format == Unrar5j.FORMAT_RAR4) {
+    System.out.println("RAR4 archive");
+} else {
+    System.out.println("Unknown format");
+}
+```
+
+### Check if password is required
+
+```java
+import be.stef.rar.Unrar5j;
+
+if (Unrar5j.isEncrypted("archive.rar")) {
+    System.out.println("Password required");
+}
+```
+
+## ExtractionResult fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `successCount` | `int` | Number of successfully extracted files |
+| `errorCount` | `int` | Number of files that failed to extract |
+| `totalFiles` | `int` | Total number of files in the archive |
+| `unpackedFiles` | `ArrayList<String>` | List of successfully extracted file names |
+| `failedFiles` | `ArrayList<String>` | List of failed file names |
+| `passwordStatus` | `int` | 0=N/A, 1=password OK, 2=wrong password |
+| `errors` | `List<ExtractionError>` | Detailed error list |
+
+## Supported Features
+
+| Feature | RAR4 | RAR5 |
+| --- | --- | --- |
+| Store (no compression) | Yes | Yes |
+| Compressed extraction | Yes | Yes |
+| Solid archives | Yes | Yes |
+| Multi-volume sets | Yes | Yes |
+| AES encryption (data) | Yes | Yes |
+| Encrypted headers and names | Yes | Yes |
+| Encrypted multi-volume | Yes | Yes |
+| CRC32 verification | Yes | Yes |
+| DELTA / E8 / E8E9 filters | Yes | Yes |
+| ARM filter | n/a | Yes |
+| BLAKE2sp verification | n/a | Yes |
+| PPMd method | No | n/a |
+| Recovery records | No | No |
 
 ## What is not supported
 
@@ -110,45 +185,24 @@ A few things worth knowing when embedding the library:
 - The rarer RAR4 VM filters (ITANIUM, RGB, AUDIO, UPCASE).
 - Archive comments and recovery records are skipped rather than exposed.
 
-## Remarks
-
-Unrar5j may still contain bugs. If you find one, please let me know and, if possible, send me a link to the archive.
-
 ## Building
 
-```bash
+```
 # Compile
-javac -encoding UTF-8 -d bin $(find be -name "*.java")
+javac -d bin src/be/stef/rar5/*.java src/be/stef/rar5/**/*.java
 
-# Create an executable JAR
+# Create JAR
 jar cfe unrar5j.jar be.stef.rar.Unrar5j -C bin .
-```
-
-## Maven
-
-```xml
-<dependency>
-  <groupId>io.github.realburst</groupId>
-  <artifactId>unrar5j</artifactId>
-  <version>v2.0.1</version>
-</dependency>
-```
-
-## Gradle
-
-```
-implementation("io.github.realburst:unrar5j:v2.0.1")
 ```
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) and the NOTICE file.
-
-This is a decompression-only implementation. The RAR formats were created by
-Alexander Roshal, and the RAR compression algorithm is proprietary; this code
-must not be used to build a RAR-compatible compressor.
+Apache License 2.0 - See [LICENSE](https://github.com/RealBurst/unrar5j/blob/main/LICENSE)
 
 ## Author
 
-Stéphane BURY
+**Stephane BURY**
 
+## Acknowledgments
+
+7-Zip by Igor Pavlov was a valuable reference for troubleshooting some decompression challenges.
