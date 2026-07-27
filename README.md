@@ -15,6 +15,8 @@ A pure Java RAR extractor (RAR4 and RAR5) with no native dependencies.
 ## Features
 
 - **Pure Java** - No native libraries or JNI required
+- **Zero dependencies** - No external libraries required, native or otherwise
+- **Lightweight** - ~12,000 lines of code covering full RAR4 and RAR5 support
 - **RAR4 and RAR5** - Automatic format detection, no configuration needed
 - **Encryption** - AES-128 (RAR4) and AES-256 (RAR5) decryption
 - **Header Encryption** - Support for encrypted file names and headers
