@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>unrar5j — Pure Java RAR Extractor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #0A0F1E; --surface: #111827; --surface2: #1a2236;
+    --blue:    #2D7DD2; --cyan:    #00D4FF; --text:     #E8F0FF;
+    --muted:   #6B7FA8; --border:  #1e2d4a; --green:    #00E5A0;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 1rem 2.5rem; background: rgba(10,15,30,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-logo { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--cyan); text-decoration: none; }
+  .nav-logo span { color: var(--muted); }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta { background: var(--blue); color: #fff !important; padding: 0.45rem 1.1rem; border-radius: 6px; font-weight: 500 !important; }
+  .nav-cta:hover { background: #3a8ee0 !important; }
+
+  .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6rem 2rem 4rem; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 900px; height: 600px; background: radial-gradient(ellipse at center, rgba(45,125,210,0.18) 0%, transparent 70%); pointer-events: none; }
+  .hero-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; letter-spacing: 0.15em; color: var(--cyan); text-transform: uppercase; margin-bottom: 1.5rem; opacity: 0; animation: fadeUp 0.6s ease 0.2s forwards; }
+  .hero h1 { font-family: 'JetBrains Mono', monospace; font-size: clamp(2.8rem, 7vw, 5rem); font-weight: 700; text-align: center; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 1.5rem; opacity: 0; animation: fadeUp 0.6s ease 0.35s forwards; }
+  .hero h1 .accent { color: var(--cyan); }
+  .hero-sub { font-size: 1.15rem; color: var(--muted); text-align: center; max-width: 580px; margin-bottom: 2.5rem; opacity: 0; animation: fadeUp 0.6s ease 0.5s forwards; }
+  .badges { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-bottom: 3rem; opacity: 0; animation: fadeUp 0.6s ease 0.65s forwards; }
+  .badge { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--surface); border: 1px solid var(--border); padding: 0.35rem 0.8rem; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--muted); }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .badge .dot.blue { background: var(--blue); }
+
+  .terminal { width: 100%; max-width: 680px; background: #0d1424; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.6); opacity: 0; animation: fadeUp 0.6s ease 0.8s forwards; }
+  .terminal-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; background: #0a0f1e; border-bottom: 1px solid var(--border); }
+  .t-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .t-dot.r { background: #FF5F57; } .t-dot.y { background: #FFBD2E; } .t-dot.g { background: #28CA41; }
+  .terminal-title { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); margin-left: auto; margin-right: auto; padding-right: 2rem; }
+  .terminal-body { padding: 1.25rem 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.8; min-height: 200px; }
+  .t-prompt { color: var(--cyan); } .t-cmd { color: var(--text); } .t-comment { color: var(--muted); } .t-file { color: var(--green); }
+  .t-line { display: block; } .t-line.hidden { opacity: 0; }
+  .cursor { display: inline-block; width: 8px; height: 1em; background: var(--cyan); vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+
+  section { padding: 5rem 2rem; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .section-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.15em; color: var(--cyan); text-transform: uppercase; margin-bottom: 0.75rem; }
+  .section-title { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 600; margin-bottom: 1rem; line-height: 1.2; }
+  .section-desc { color: var(--muted); max-width: 520px; margin-bottom: 3rem; }
+
+  #features { background: var(--surface); }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+  .feature-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 1.75rem; transition: border-color 0.25s, transform 0.25s; }
+  .feature-card:hover { border-color: var(--blue); transform: translateY(-3px); }
+  .feature-icon { width: 42px; height: 42px; border-radius: 8px; background: rgba(45,125,210,0.15); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; font-size: 1.3rem; }
+  .feature-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+  .tabs { display: flex; border-radius: 8px 8px 0 0; overflow: hidden; width: fit-content; }
+  .tab { padding: 0.6rem 1.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-bottom: none; cursor: pointer; transition: background 0.2s, color 0.2s; user-select: none; }
+  .tab.active { background: var(--surface); color: var(--cyan); }
+  .code-block { background: var(--surface); border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 1.5rem; position: relative; display: none; }
+  .code-block.active { display: block; }
+  .code-block pre { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.8; color: var(--text); overflow-x: auto; white-space: pre; }
+  .copy-btn { position: absolute; top: 0.75rem; right: 0.75rem; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; padding: 0.3rem 0.7rem; border-radius: 5px; cursor: pointer; transition: background 0.2s, color 0.2s; }
+  .copy-btn:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .usage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 3rem; }
+  @media (max-width: 700px) { .usage-grid { grid-template-columns: 1fr; } }
+  .usage-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; }
+  .usage-card h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--cyan); margin-bottom: 1rem; }
+  .usage-card pre { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.75; color: var(--text); overflow-x: auto; white-space: pre; }
+  .kw { color: #79B8FF; } .cl { color: #B5EEFF; } .st { color: #9DECB5; } .cm { color: var(--muted); }
+
+  .cli-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-top: 2rem; }
+  .cli-block h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--cyan); margin-bottom: 1rem; }
+  .cli-block pre { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.9; color: var(--text); overflow-x: auto; white-space: pre; }
+
+  #limitations { background: var(--surface); }
+  .lim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .lim-grid { grid-template-columns: 1fr; } }
+  .lim-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem 1.25rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+  .lim-item .icon { font-size: 1rem; margin-top: 0.05rem; flex-shrink: 0; }
+
+  #cta { text-align: center; }
+  .cta-box { background: linear-gradient(135deg, rgba(45,125,210,0.15), rgba(0,212,255,0.08)); border: 1px solid rgba(45,125,210,0.3); border-radius: 16px; padding: 4rem 2rem; }
+  .cta-box h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: 1rem; }
+  .cta-box p { color: var(--muted); margin-bottom: 2rem; }
+  .btn-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; border-radius: 8px; font-weight: 500; font-size: 0.95rem; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 4px 20px rgba(45,125,210,0.4); }
+  .btn-primary:hover { box-shadow: 0 8px 30px rgba(45,125,210,0.5); }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+  footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--cyan); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  @media (max-width: 768px) { nav { padding: 1rem 1.25rem; } .nav-links { display: none; } .hero h1 { font-size: 2.4rem; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } .hero-eyebrow, .hero h1, .hero-sub, .badges, .terminal { opacity: 1 !important; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#"><span>//</span> unrar5j</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#quickstart">Quick Start</a></li>
+    <li><a href="#limitations">Limitations</a></li>
+    <li><a href="https://github.com/RealBurst/unrar5j" class="nav-cta">GitHub →</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <p class="hero-eyebrow">Open Source · Pure Java · No native dependencies</p>
+  <h1>Extract <span class="accent">RAR</span> archives<br>with pure Java.</h1>
+  <p class="hero-sub">unrar5j is a pure Java RAR extractor supporting RAR4 and RAR5 — AES-128/256 encryption, encrypted headers, solid and multi-volume archives, CRC32 and BLAKE2sp verification, zero native code.</p>
+  <div class="badges">
+    <span class="badge"><span class="dot"></span>Maven Central</span>
+    <span class="badge"><span class="dot blue"></span>Java 8+</span>
+    <span class="badge">RAR4 &amp; RAR5</span>
+    <span class="badge">Apache 2.0</span>
+    <span class="badge">io.github.realburst</span>
+  </div>
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div>
+      <span class="terminal-title">unrar5j — extraction demo</span>
+    </div>
+    <div class="terminal-body">
+      <span class="t-line"><span class="t-prompt">$</span> <span class="t-cmd" id="tl0"></span></span>
+      <span class="t-line hidden" id="tl1"></span>
+      <span class="t-line hidden" id="tl2"></span>
+      <span class="t-line hidden" id="tl3"></span>
+      <span class="t-line hidden" id="tl4"></span>
+      <span class="t-line hidden" id="tl5"></span>
+      <span class="t-line hidden" id="tl6"></span>
+      <span class="t-line hidden" id="tl7"></span>
+      <span class="t-line"><span class="cursor"></span></span>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <p class="section-label">Capabilities</p>
+    <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+    <p class="section-desc">A focused library that does one thing well — no bloat, no native binaries, no JNI.</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">📦</div><h3>RAR4 &amp; RAR5</h3><p>Automatic format detection — the same API handles both RAR4 and RAR5 transparently, with no configuration needed.</p></div>
+      <div class="feature-card"><div class="feature-icon">🔐</div><h3>AES Encryption</h3><p>AES-128 (RAR4) and AES-256 (RAR5) decryption, including encrypted headers and file names.</p></div>
+      <div class="feature-card"><div class="feature-icon">🗂️</div><h3>Multi-volume archives</h3><p>Extraction across split .partNN.rar sets — part files are discovered and reassembled automatically.</p></div>
+      <div class="feature-card"><div class="feature-icon">🧩</div><h3>Filters &amp; solid archives</h3><p>DELTA, E8, E8E9 (x86), and ARM filters supported, with correct handling of solid compression.</p></div>
+      <div class="feature-card"><div class="feature-icon">🛡️</div><h3>CRC32 &amp; BLAKE2sp</h3><p>Integrity verification on every extracted file — CRC32, plus BLAKE2sp when the archive provides it.</p></div>
+      <div class="feature-card"><div class="feature-icon">☕</div><h3>Pure Java</h3><p>Runs anywhere Java 8+ runs. No JNI, no native binaries, no OS-specific setup. Deploy on any platform.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="container">
+    <p class="section-label">Quick Start</p>
+    <h2 class="section-title">Up and running<br>in 60 seconds.</h2>
+    <p class="section-desc">Add the dependency, write a few lines of Java. That's it.</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('maven', this)">Maven</div>
+      <div class="tab" onclick="switchTab('gradle', this)">Gradle</div>
+    </div>
+    <div class="code-block active" id="tab-maven">
+      <button class="copy-btn" onclick="copyCode('maven')">copy</button>
+      <pre id="code-maven">&lt;dependency&gt;
+  &lt;groupId&gt;io.github.realburst&lt;/groupId&gt;
+  &lt;artifactId&gt;unrar5j&lt;/artifactId&gt;
+  &lt;version&gt;2.0.3&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+    </div>
+    <div class="code-block" id="tab-gradle">
+      <button class="copy-btn" onclick="copyCode('gradle')">copy</button>
+      <pre id="code-gradle">implementation 'io.github.realburst:unrar5j:2.0.3'</pre>
+    </div>
+
+    <div class="usage-grid">
+      <div class="usage-card">
+        <h3>// Extract an archive</h3>
+        <pre><span class="cl">ExtractionResult</span> result =
+    <span class="cl">Unrar5j</span>.extract(
+        <span class="st">"archive.rar"</span>,
+        <span class="st">"./output"</span>, <span class="kw">null</span>);
+
+<span class="cl">System</span>.out.println(<span class="st">"Extracted: "</span>
+    + result.successCount
+    + <span class="st">"/"</span> + result.totalFiles);
+<span class="kw">if</span> (!result.isSuccess())
+    result.print();</pre>
+      </div>
+      <div class="usage-card">
+        <h3>// Extract with a password</h3>
+        <pre><span class="cl">ExtractionResult</span> result =
+    <span class="cl">Unrar5j</span>.extract(
+        <span class="st">"encrypted.rar"</span>,
+        <span class="st">"./output"</span>,
+        <span class="st">"mypassword"</span>);
+
+<span class="cm">// passwordStatus: 1=OK, 2=wrong</span>
+<span class="kw">if</span> (result.passwordStatus == <span class="cl">2</span>)
+    <span class="cl">System</span>.out.println(<span class="st">"Wrong password"</span>);</pre>
+      </div>
+      <div class="usage-card">
+        <h3>// Extract a single file</h3>
+        <pre><span class="cl">ExtractionResult</span> result =
+    <span class="cl">Unrar5j</span>.extract(
+        <span class="st">"archive.rar"</span>,
+        <span class="st">"./output"</span>,
+        <span class="kw">null</span>,
+        <span class="st">"path/to/file.pdf"</span>);
+result.print();</pre>
+      </div>
+      <div class="usage-card">
+        <h3>// Detect format &amp; check encryption</h3>
+        <pre><span class="kw">int</span> fmt = <span class="cl">Unrar5j</span>.detectFormat(<span class="st">"a.rar"</span>);
+<span class="cm">// FORMAT_RAR4, FORMAT_RAR5,</span>
+<span class="cm">// or FORMAT_UNKNOWN</span>
+
+<span class="kw">if</span> (<span class="cl">Unrar5j</span>.isEncrypted(<span class="st">"a.rar"</span>)) {
+    <span class="cl">System</span>.out.println(
+        <span class="st">"Password required"</span>);
+}</pre>
+      </div>
+    </div>
+
+    <div class="cli-block">
+      <h3>// Command line</h3>
+      <pre><span class="cm"># Extract to current directory (RAR4 or RAR5 auto-detected)</span>
+java -jar unrar5j.jar archive.rar
+
+<span class="cm"># Extract to a specific directory</span>
+java -jar unrar5j.jar archive.rar -o ./output
+
+<span class="cm"># Extract an encrypted archive</span>
+java -jar unrar5j.jar encrypted.rar -p mysecretpassword
+
+<span class="cm"># Extract a single file</span>
+java -jar unrar5j.jar archive.rar -f "path/to/document.pdf"
+
+<span class="cm"># Combine options</span>
+java -jar unrar5j.jar encrypted.rar -o ./output -p secret -f path/to/file.txt</pre>
+    </div>
+  </div>
+</section>
+
+<section id="limitations">
+  <div class="container">
+    <p class="section-label">Limitations</p>
+    <h2 class="section-title">What's not supported.</h2>
+    <p class="section-desc">Transparency matters. Here's what the library currently doesn't handle.</p>
+    <div class="lim-grid">
+      <div class="lim-item"><span class="icon">⚠️</span><span>Read-only — creating or modifying archives is not supported</span></div>
+      <div class="lim-item"><span class="icon">⚠️</span><span>RAR4 PPMd compression method (0x35) is not supported</span></div>
+      <div class="lim-item"><span class="icon">⚠️</span><span>RAR4 VM filters (ITANIUM, RGB, AUDIO) are not supported</span></div>
+      <div class="lim-item"><span class="icon">⚠️</span><span>Archive comments and recovery records are skipped (not exposed)</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="container">
+    <div class="cta-box">
+      <h2>Ready to extract?</h2>
+      <p>Star the project on GitHub, report issues, or contribute — all welcome.</p>
+      <div class="btn-group">
+        <a href="https://github.com/RealBurst/unrar5j" class="btn btn-primary">⭐ Star on GitHub</a>
+        <a href="https://central.sonatype.com/artifact/io.github.realburst/unrar5j" class="btn btn-secondary">View on Maven Central</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>unrar5j · <a href="https://github.com/RealBurst/unrar5j">GitHub</a> · <a href="https://central.sonatype.com/artifact/io.github.realburst/unrar5j">Maven Central</a> · Apache License 2.0 · Made by <a href="https://github.com/RealBurst">Stéphane Bury</a></p>
+</footer>
+
+<script>
+  const lines = [
+    { el:'tl0', type:'cmd',     text:'java -jar unrar5j.jar backup.part1.rar -o ./out', delay:0 },
+    { el:'tl1', type:'comment', text:'Detected format: RAR5', delay:400 },
+    { el:'tl2', type:'comment', text:'Multi-volume archive: 3 volume(s) found', delay:600 },
+    { el:'tl3', type:'file',    text:'  documents/report_2024.pdf        2.3 MB', delay:820 },
+    { el:'tl4', type:'file',    text:'  images/photos.zip               18.7 MB', delay:1020 },
+    { el:'tl5', type:'file',    text:'  Stéphane/données_été_2023.xlsx   1.1 MB', delay:1220 },
+    { el:'tl6', type:'comment', text:'CRC32 + BLAKE2sp: all files verified', delay:1450 },
+    { el:'tl7', type:'comment', text:'Extracted: 3/3', delay:1650 },
+  ];
+
+  function typeText(el, text, cb) {
+    let i = 0;
+    const iv = setInterval(() => { el.textContent += text[i++]; if (i >= text.length) { clearInterval(iv); if (cb) cb(); } }, 18);
+  }
+  function showLine(idx) {
+    if (idx >= lines.length) return;
+    const l = lines[idx], el = document.getElementById(l.el);
+    setTimeout(() => {
+      el.classList.remove('hidden');
+      if (l.type === 'cmd') {
+        el.innerHTML = '<span class="t-prompt">$</span> <span class="t-cmd"></span>';
+        typeText(el.querySelector('.t-cmd'), l.text, () => showLine(idx + 1));
+      } else {
+        el.innerHTML = `<span class="${l.type === 'file' ? 't-file' : 't-comment'}">${l.text}</span>`;
+        showLine(idx + 1);
+      }
+    }, l.delay);
+  }
+  window.addEventListener('load', () => showLine(0));
+
+  function switchTab(name, tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.code-block').forEach(b => b.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+  function copyCode(name) {
+    navigator.clipboard.writeText(document.getElementById('code-' + name).textContent).then(() => {
+      const btn = event.target; btn.textContent = 'copied!';
+      setTimeout(() => btn.textContent = 'copy', 1800);
+    });
+  }
+  const obs = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = 1; e.target.style.transform = 'translateY(0)'; } }), { threshold: 0.1 });
+  document.querySelectorAll('.feature-card, .usage-card, .lim-item').forEach(el => { el.style.opacity = 0; el.style.transform = 'translateY(16px)'; el.style.transition = 'opacity 0.5s ease, transform 0.5s ease'; obs.observe(el); });
+</script>
+</body>
+</html>
