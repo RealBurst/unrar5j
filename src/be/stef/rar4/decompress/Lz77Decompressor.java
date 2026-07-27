@@ -523,17 +523,23 @@ public class Lz77Decompressor implements Rar4Decompressor {
             }
             for (int i = 0; i < bl; i++) window[(bs + i) & WIN_MASK] = tmp[i];
 
-        } else {
-           // ITANIUM / RGB / AUDIO / UPCASE: not implemented (rare)
-           String name;
-           switch (type) {
-               case 3:  name = "ITANIUM"; break;
-               case 4:  name = "RGB";     break;
-               case 5:  name = "AUDIO";   break;
-               case 7:  name = "UPCASE";  break;
-               default: name = "INCONNU (" + type + ")"; break;
+        } else if (type == 7) {
+           // UPCASE: convert each byte to uppercase (subtract 0x20 from lowercase ASCII letters)
+           for (int i = 0; i < bl; i++) {
+               int idx = (bs + i) & WIN_MASK;
+               byte b = window[idx];
+               if (b >= 'a' && b <= 'z') window[idx] = (byte) (b - 0x20);
            }
-           System.err.println("Filter " + name + " decoding NOT IMPLEMENTED");
+        } else {
+          // ITANIUM / RGB / AUDIO: not implemented (rare)
+          String name;
+          switch (type) {
+              case 3:  name = "ITANIUM"; break;
+              case 4:  name = "RGB";     break;
+              case 5:  name = "AUDIO";   break;
+              default: name = "INCONNU (" + type + ")"; break;
+          }
+          System.err.println("Filter " + name + " decoding NOT IMPLEMENTED");
        }
     }
 

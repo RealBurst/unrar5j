@@ -16,14 +16,14 @@ A pure Java RAR extractor (RAR4 and RAR5) with no native dependencies.
 
 - **Pure Java** - No native libraries or JNI required
 - **RAR4 and RAR5** - Automatic format detection, no configuration needed
-- **Encryption** - AES-256 decryption with PBKDF2-HMAC-SHA256 key derivation
+- **Encryption** - AES-128 (RAR4) and AES-256 (RAR5) decryption
 - **Header Encryption** - Support for encrypted file names and headers
 - **Compression** - LZ77-based decompression with Huffman coding
-- **Filters** - DELTA, E8, E8E9 (x86), and ARM filter support
+- **Filters** - DELTA, E8, E8E9 (x86), ARM (RAR5) filter support
 - **Solid Archives** - Proper handling of solid compression
 - **Multi-volume archives** - Extraction across split .partNN.rar sets
 - **CRC32 Verification** - Integrity check on extracted files
-- **BLAKE2sp Verification** - Stronger integrity check when present in the archive
+- **BLAKE2sp Verification** - Stronger integrity check when present in RAR5 archives
 
 ## Requirements
 
@@ -38,14 +38,14 @@ A pure Java RAR extractor (RAR4 and RAR5) with no native dependencies.
 <dependency>
   <groupId>io.github.realburst</groupId>
   <artifactId>unrar5j</artifactId>
-  <version>2.0.2</version>
+  <version>2.0.3</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.realburst:unrar5j:2.0.2'
+implementation 'io.github.realburst:unrar5j:2.0.3'
 ```
 
 ## Command Line Usage
@@ -91,13 +91,11 @@ java -jar unrar5j.jar encrypted.rar -o ./output -p secret -f path/to/myfile.txt
 import be.stef.rar.Unrar5j;
 import be.stef.rar.ExtractionResult;
 
-Unrar5j unrar = new Unrar5j();
-
 // Extract without password (RAR4 or RAR5 detected automatically)
-ExtractionResult result = unrar.extract("archive.rar", "./output", null);
+ExtractionResult result = Unrar5j.extract("archive.rar", "./output", null);
 
 // Extract with password
-ExtractionResult result = unrar.extract("encrypted.rar", "./output", "mypassword");
+ExtractionResult result = Unrar5j.extract("encrypted.rar", "./output", "mypassword");
 
 // Check results
 System.out.println("Extracted: " + result.successCount + "/" + result.totalFiles);
@@ -117,9 +115,7 @@ if (result.isSuccess()) {
 import be.stef.rar.Unrar5j;
 import be.stef.rar.ExtractionResult;
 
-Unrar5j unrar = new Unrar5j();
-
-ExtractionResult result = unrar.extract("archive.rar", "./output", null, "path/to/document.pdf");
+ExtractionResult result = Unrar5j.extract("archive.rar", "./output", null, "path/to/document.pdf");
 result.print();
 ```
 
@@ -173,8 +169,8 @@ if (Unrar5j.isEncrypted("archive.rar")) {
 | Encrypted multi-volume | Yes | Yes |
 | CRC32 verification | Yes | Yes |
 | DELTA / E8 / E8E9 filters | Yes | Yes |
-| ARM filter | n/a | Yes |
-| BLAKE2sp verification | n/a | Yes |
+| ARM filter | No | Yes |
+| BLAKE2sp verification | No | Yes |
 | PPMd method | No | n/a |
 | Recovery records | No | No |
 
@@ -182,14 +178,18 @@ if (Unrar5j.isEncrypted("archive.rar")) {
 
 - Creating or modifying archives. This is a reader only.
 - The RAR4 PPMd method (0x35).
-- The rarer RAR4 VM filters (ITANIUM, RGB, AUDIO, UPCASE).
+- The rarer RAR4 VM filters (ITANIUM, RGB, AUDIO).
 - Archive comments and recovery records are skipped rather than exposed.
 
 ## Building
 
 ```
-# Compile
-javac -d bin src/be/stef/rar5/*.java src/be/stef/rar5/**/*.java
+# Windows — list all sources then compile
+dir /s /b src\*.java > sources.txt
+javac -d bin @sources.txt
+
+# Linux / macOS
+find src -name "*.java" | xargs javac -d bin
 
 # Create JAR
 jar cfe unrar5j.jar be.stef.rar.Unrar5j -C bin .
