@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="unrar5j — Pure Java RAR4 and RAR5 extractor. Zero dependencies, ~12,000 lines of code. AES encryption, solid archives, multi-volume, BLAKE2sp verification. Available on Maven Central.">
-<title>unrar5j — Pure Java RAR Extractor</title>
+<meta name="description" content="unrar5j - Pure Java RAR4 and RAR5 extractor. Zero dependencies, ~12,000 lines of code. AES encryption, solid archives, multi-volume, BLAKE2sp verification. Available on Maven Central.">
+<title>unrar5j - Pure Java RAR Extractor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -123,7 +123,7 @@
 <section class="hero">
   <p class="hero-eyebrow">Open Source · Pure Java · No native dependencies</p>
   <h1>Extract <span class="accent">RAR</span> archives<br>with pure Java.</h1>
-  <p class="hero-sub">unrar5j is a pure Java RAR extractor supporting RAR4 and RAR5 — AES-128/256 encryption, encrypted headers, solid and multi-volume archives, CRC32 and BLAKE2sp verification. Zero native code, zero external dependencies, ~12,000 lines of code.</p>
+  <p class="hero-sub">unrar5j is a pure Java RAR extractor supporting RAR4 and RAR5 - AES-128/256 encryption, encrypted headers, solid and multi-volume archives, CRC32 and BLAKE2sp verification. Zero native code, zero external dependencies, ~12,000 lines of code.</p>
   <div class="badges">
     <span class="badge"><span class="dot"></span>Maven Central</span>
     <span class="badge"><span class="dot blue"></span>Java 8+</span>
@@ -134,7 +134,7 @@
   <div class="terminal">
     <div class="terminal-bar">
       <div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div>
-      <span class="terminal-title">unrar5j — extraction demo</span>
+      <span class="terminal-title">unrar5j - extraction demo</span>
     </div>
     <div class="terminal-body">
       <span class="t-line"><span class="t-prompt">$</span> <span class="t-cmd" id="tl0"></span></span>
@@ -154,14 +154,14 @@
   <div class="container">
     <p class="section-label">Capabilities</p>
     <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
-    <p class="section-desc">A focused library that does one thing well — no bloat, no native binaries, no JNI.</p>
+    <p class="section-desc">A focused library that does one thing well - no bloat, no native binaries, no JNI.</p>
     <div class="features-grid">
-      <div class="feature-card"><div class="feature-icon">📦</div><h3>RAR4 &amp; RAR5</h3><p>Automatic format detection — the same API handles both RAR4 and RAR5 transparently, with no configuration needed.</p></div>
+      <div class="feature-card"><div class="feature-icon">📦</div><h3>RAR4 &amp; RAR5</h3><p>Automatic format detection - the same API handles both RAR4 and RAR5 transparently, with no configuration needed.</p></div>
       <div class="feature-card"><div class="feature-icon">🔐</div><h3>AES Encryption</h3><p>AES-128 (RAR4) and AES-256 (RAR5) decryption, including encrypted headers and file names.</p></div>
-      <div class="feature-card"><div class="feature-icon">🗂️</div><h3>Multi-volume archives</h3><p>Extraction across split .partNN.rar sets — part files are discovered and reassembled automatically.</p></div>
+      <div class="feature-card"><div class="feature-icon">🗂️</div><h3>Multi-volume archives</h3><p>Extraction across split .partNN.rar sets - part files are discovered and reassembled automatically.</p></div>
       <div class="feature-card"><div class="feature-icon">🧩</div><h3>Filters &amp; solid archives</h3><p>DELTA, E8, E8E9 (x86), and ARM filters supported, with correct handling of solid compression.</p></div>
-      <div class="feature-card"><div class="feature-icon">🛡️</div><h3>CRC32 &amp; BLAKE2sp</h3><p>Integrity verification on every extracted file — CRC32, plus BLAKE2sp when the archive provides it.</p></div>
-      <div class="feature-card"><div class="feature-icon">☕</div><h3>Pure Java, zero dependencies</h3><p>No JNI, no native binaries, no external libraries of any kind. ~12,000 lines of code covering full RAR4 and RAR5 support — drop a single JAR into your project and you're done.</p></div>
+      <div class="feature-card"><div class="feature-icon">🛡️</div><h3>CRC32 &amp; BLAKE2sp</h3><p>Integrity verification on every extracted file - CRC32, plus BLAKE2sp when the archive provides it.</p></div>
+      <div class="feature-card"><div class="feature-icon">☕</div><h3>Pure Java, zero dependencies</h3><p>No JNI, no native binaries, no external libraries of any kind. ~12,000 lines of code covering full RAR4 and RAR5 support - drop a single JAR into your project and you're done.</p></div>
     </div>
   </div>
 </section>
@@ -264,7 +264,7 @@ java -jar unrar5j.jar encrypted.rar -o ./output -p secret -f path/to/file.txt</p
     <h2 class="section-title">What's not supported.</h2>
     <p class="section-desc">Transparency matters. Here's what the library currently doesn't handle.</p>
     <div class="lim-grid">
-      <div class="lim-item"><span class="icon">⚠️</span><span>Read-only — creating or modifying archives is not supported</span></div>
+      <div class="lim-item"><span class="icon">⚠️</span><span>Read-only - creating or modifying archives is not supported</span></div>
       <div class="lim-item"><span class="icon">⚠️</span><span>RAR4 PPMd compression method (0x35) is not supported</span></div>
       <div class="lim-item"><span class="icon">⚠️</span><span>RAR4 VM filters (ITANIUM, RGB, AUDIO) are not supported</span></div>
       <div class="lim-item"><span class="icon">⚠️</span><span>Archive comments and recovery records are skipped (not exposed)</span></div>
@@ -276,7 +276,7 @@ java -jar unrar5j.jar encrypted.rar -o ./output -p secret -f path/to/file.txt</p
   <div class="container">
     <div class="cta-box">
       <h2>Ready to extract?</h2>
-      <p>Star the project on GitHub, report issues, or contribute — all welcome.</p>
+      <p>Star the project on GitHub, report issues, or contribute - all welcome.</p>
       <div class="btn-group">
         <a href="https://github.com/RealBurst/unrar5j" class="btn btn-primary">⭐ Star on GitHub</a>
         <a href="https://central.sonatype.com/artifact/io.github.realburst/unrar5j" class="btn btn-secondary">View on Maven Central</a>
