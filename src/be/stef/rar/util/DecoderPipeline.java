@@ -183,7 +183,6 @@ public final class DecoderPipeline {
      * inside this class.</p>
      */
     public final class PipelineOutputStream extends OutputStream {
-
         private byte[] current = new byte[chunkSize];
         private int    pos     = 0;
 

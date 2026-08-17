@@ -1007,20 +1007,22 @@ public class Rar5LZDecoder {
                 int wp = windowPos;
                 int rem = windowSize - wp;
 
-                if (rem == 0) {
-                    lzSize += wp;
-                    curWinPos -= wp;
-                    
-                    if (curWinPos > 0) {
-                        System.arraycopy(win, windowSize, win, 0, curWinPos);
-                    }
+                if (rem <= 0) {
+                   int overflow = -rem;
+                   lzSize += windowSize;
+                   curWinPos = overflow;
+                   windowPos = overflow;
 
-                    limit = windowSize;
-                    if (limit >= WRITE_STEP) {
-                        limit = WRITE_STEP;
-                        continue;
-                    }
-                    rem = windowSize - curWinPos;
+                   if (overflow > 0) {
+                       System.arraycopy(win, windowSize, win, 0, overflow);
+                   }
+
+                   limit = windowSize;
+                   if (limit >= WRITE_STEP) {
+                       limit = WRITE_STEP;
+                       continue;
+                   }
+                   rem = windowSize - curWinPos;
                 }
                 
                 if (rem > WRITE_STEP) {

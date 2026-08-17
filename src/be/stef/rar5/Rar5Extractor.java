@@ -568,8 +568,7 @@ public class Rar5Extractor {
      * @param outputFile the output file to write to
      * @return true if successful
      */
-    private static boolean decompressToFile(Rar5FileBlock file, InputStream input, File outputFile,
-                                            CRC32 crc, Blake2sp.Digest blake2, ExtractionContext ctx) {
+    private static boolean decompressToFile(Rar5FileBlock file, InputStream input, File outputFile, CRC32 crc, Blake2sp.Digest blake2, ExtractionContext ctx) {
        ProgressOutputStream progressOut = null;
 
        try {
@@ -579,7 +578,7 @@ public class Rar5Extractor {
            // Method 0 = store (no compression)
            if (method == Rar5Constants.COMPRESS_METHOD_STORE) {
                try (FileOutputStream fos = new FileOutputStream(outputFile);
-                    BufferedOutputStream bos = new BufferedOutputStream(fos, 65536)) {
+                   BufferedOutputStream bos = new BufferedOutputStream(fos, 1 << 18)) {
                    
                    OutputStream targetOut = wrapVerifiers(bos, crc, blake2);
                    targetOut = showProgress
@@ -615,7 +614,7 @@ public class Rar5Extractor {
            ctx.decoder.setDecoderProperties(properties);
 
            try (FileOutputStream fos = new FileOutputStream(outputFile);
-                BufferedOutputStream bos = new BufferedOutputStream(fos, 65536)) {
+                BufferedOutputStream bos = new BufferedOutputStream(fos, 1 << 18)) {
                OutputStream verifiedOut = wrapVerifiers(bos, crc, blake2);
                OutputStream targetOut = showProgress
                    ? new ProgressOutputStream(verifiedOut, unpackedSize, file.getFileName())
