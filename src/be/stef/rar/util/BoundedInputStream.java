@@ -36,24 +36,28 @@ public class BoundedInputStream extends InputStream {
     @Override
     public int read() throws IOException {
         if (pos >= end) return -1;
-        file.seek(pos);
+        if (file.getFilePointer() != pos) {
+            file.seek(pos);
+        }
         int b = file.read();
         if (b != -1) pos++;
         return b;
     }
-
+    
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         if (pos >= end) return -1;
         long canRead = end - pos;
         if (len > canRead) len = (int) canRead;
         
-        file.seek(pos);
+        if (file.getFilePointer() != pos) {
+            file.seek(pos);
+        }
         int bytesRead = file.read(b, off, len);
         if (bytesRead != -1) pos += bytesRead;
         return bytesRead;
     }
-
+    
     @Override
     public int available() {
         return (int) Math.max(0, end - pos);

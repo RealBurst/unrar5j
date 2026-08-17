@@ -21,10 +21,18 @@ import java.io.OutputStream;
 
 /**
  * OutputStream that displays progress on a single line.
+ *
+ * <p>When extraction completes, {@link #finish()} reprints the line with the
+ * elapsed time appended, for example:</p>
+ * <pre>
+ * [==============================] 4,2 MB 100% (setup.exe) -&gt; 5 sec
+ * [==============================] 1,8 GB 100% (image.iso) -&gt; 3 min 24 sec
+ * </pre>
  */
 public class ProgressOutputStream extends FilterOutputStream {
     private final long totalSize;
     private final String fileName;
+    private final long startTime;
     private long bytesWritten = 0;
     private int lastPercent = -1;
     
@@ -32,6 +40,7 @@ public class ProgressOutputStream extends FilterOutputStream {
         super(out);
         this.totalSize = totalSize;
         this.fileName = fileName;
+        this.startTime = System.nanoTime();
     }
     
     @Override
@@ -56,11 +65,17 @@ public class ProgressOutputStream extends FilterOutputStream {
         // Print only when the percentage changes
         if (percent != lastPercent) {
             lastPercent = percent;
-            printProgress(percent);
+            printProgress(percent, null);
         }
     }
     
-    private void printProgress(int percent) {
+    /**
+     * Prints the progress line.
+     *
+     * @param percent  completion percentage
+     * @param duration formatted elapsed time to append, or null while running
+     */
+    private void printProgress(int percent, String duration) {
         // Visual progress bar
         int barWidth = 30;
         int filled = (percent * barWidth) / 100;
@@ -73,13 +88,47 @@ public class ProgressOutputStream extends FilterOutputStream {
         
         // \r returns to the beginning of the line
         System.out.printf("\r%s %s %3d%% (%s)", bar, formatSize(bytesWritten), percent, truncateFileName(fileName, 30));
+        if (duration != null) {
+            System.out.print(" -> " + duration);
+        }
     }
     
     /**
-     * Called at the end to move to the next line.
+     * Called at the end to append the elapsed time and move to the next line.
      */
     public void finish() {
+        if (totalSize > 0) {
+            printProgress(lastPercent < 0 ? 0 : lastPercent, formatDuration(getElapsedMillis()));
+        }
         System.out.println(); // New line after completion
+    }
+    
+    /**
+     * Returns the time elapsed since this stream was created.
+     *
+     * @return elapsed time in milliseconds
+     */
+    public long getElapsedMillis() {
+        return (System.nanoTime() - startTime) / 1_000_000L;
+    }
+    
+    /**
+     * Formats a duration as "5 sec", "3 min 24 sec" or "1 h 5 min 3 sec".
+     *
+     * @param millis duration in milliseconds
+     * @return human-readable duration
+     */
+    public static String formatDuration(long millis) {
+        if (millis < 1000) return millis + " ms";
+        
+        long totalSec = millis / 1000;
+        long hours    = totalSec / 3600;
+        long minutes  = (totalSec % 3600) / 60;
+        long seconds  = totalSec % 60;
+        
+        if (hours > 0)   return hours + " h " + minutes + " min " + seconds + " sec";
+        if (minutes > 0) return minutes + " min " + seconds + " sec";
+        return seconds + " sec";
     }
     
     private static String formatSize(long bytes) {

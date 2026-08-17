@@ -33,6 +33,15 @@ import be.stef.rar.ExtractionResult;
 import be.stef.rar.exceptions.RarCorruptedDataException;
 import be.stef.rar.exceptions.RarDecryptException;
 import be.stef.rar.util.NullOutputStream;
+import be.stef.rar.util.Blake2sp;
+import be.stef.rar.util.Blake2spOutputStream;
+import be.stef.rar.util.CrcOutputStream;
+import be.stef.rar.util.DecoderPipeline;
+import be.stef.rar5.ExtractionContext;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import be.stef.rar.util.BoundedInputStream;
 import be.stef.rar.util.ProgressOutputStream;
 import be.stef.rar.util.SafePathBuilder;
@@ -75,7 +84,6 @@ import be.stef.rar5.extra.Rar5ExtraCrypto;
  * @since 1.0
  */
 public class Rar5Extractor {
-    private static Rar5LZDecoder sharedDecoder = null;
     public static boolean showProgress = true;    
     public static boolean isEncryptedArchive;
     public static SafePathBuilder pathBuilder;
@@ -210,28 +218,78 @@ public class Rar5Extractor {
             List<Rar5FileBlock> fileBlocks = reader.getFileBlocks();
             result.totalFiles = fileBlocks.size();
 
-            // Step 3: Extract each file using RandomAccessFile
-            try (RandomAccessFile raf = new RandomAccessFile(archiveFile, "r")) {
-                for (Rar5FileBlock file : fileBlocks) {
-                    try {
-                        boolean isTarget = (fileFilter == null || fileFilter.equals(file.getFileName()));
-                       
-                        if (file.isSolid() && !isTarget) {
-                           // Solid archive: must decode but not write to disk
-                           // The decoder must still run to keep its state consistent
-                           extractFile(file, raf, reader, outputDir, password, result, false);
-                           continue;
+            // Step 3: Extract each file.
+            // Non-solid multi-file archives are processed in parallel using one
+            // thread per CPU core. Each thread gets its own ExtractionContext
+            // (decoder + pathBuilder) so there is no shared mutable state.
+            boolean arcSolid  = mainArchive != null && mainArchive.isSolid();
+            boolean anySolid  = arcSolid || fileBlocks.stream().anyMatch(Rar5FileBlock::isSolid);
+            boolean canParallel = !anySolid && fileBlocks.size() > 1 && fileFilter == null;
+
+            if (canParallel) {
+                final File archiveFileRef = archiveFile;
+                int threads = Math.min(fileBlocks.size(),
+                                       Math.max(1, Runtime.getRuntime().availableProcessors()));
+                ExecutorService pool = Executors.newFixedThreadPool(threads);
+                List<Future<?>> futures = new java.util.ArrayList<>();
+                try {
+                    for (Rar5FileBlock file : fileBlocks) {
+                        if (file.isDirectory()) {
+                            try {
+                                java.io.File dir = pathBuilder.buildSafeDirPath(file.getFileName());
+                                dir.mkdirs();
+                                synchronized (result) { result.successCount++; }
+                            } catch (Exception e) {
+                                synchronized (result) { result.errorCount++; }
+                            }
+                            continue;
                         }
-                       
-                        if (!isTarget) {
-                           continue;  // Non-solid: we can simply skip
-                        }                        
-                        extractFile(file, raf, reader, outputDir, password, result);
-                        result.unpackedFiles.add(file.getFileName());
-                    } catch (Exception e) {
-                        result.errors.add(buildError(file, "Exception during extraction", e));
-                        result.errorCount++;
-                        result.failedFiles.add(file.getFileName());
+                        futures.add(pool.submit(() -> {
+                            // Each task owns its RAF and ExtractionContext (decoder + pathBuilder).
+                            ExtractionContext ctx = new ExtractionContext(
+                                new SafePathBuilder(new java.io.File(outputDir)));
+                            try (RandomAccessFile raf = new RandomAccessFile(archiveFileRef, "r")) {
+                                ExtractionResult localResult = new ExtractionResult();
+                                extractFile(file, raf, reader, outputDir, password, localResult, ctx);
+                                synchronized (result) { result.merge(localResult); }
+                            } catch (Exception e) {
+                                synchronized (result) {
+                                    result.errors.add(buildError(file, "Exception during extraction", e));
+                                    result.errorCount++;
+                                    result.failedFiles.add(file.getFileName());
+                                }
+                            }
+                            return null;
+                        }));
+                    }
+                    for (Future<?> f : futures) {
+                        try { f.get(); } catch (java.util.concurrent.ExecutionException e) { /* handled in task */ }
+                    }
+                } finally {
+                    pool.shutdown();
+                }
+            } else {
+                // Sequential path: solid, mono-file, or filtered extraction.
+                ExtractionContext ctx = new ExtractionContext(pathBuilder);
+                try (RandomAccessFile raf = new RandomAccessFile(archiveFile, "r")) {
+                    for (Rar5FileBlock file : fileBlocks) {
+                        try {
+                            boolean isTarget = (fileFilter == null || fileFilter.equals(file.getFileName()));
+
+                            if (file.isSolid() && !isTarget) {
+                                extractFile(file, raf, reader, outputDir, password, result, false, ctx);
+                                continue;
+                            }
+
+                            if (!isTarget) continue;
+
+                            extractFile(file, raf, reader, outputDir, password, result, ctx);
+                            result.unpackedFiles.add(file.getFileName());
+                        } catch (Exception e) {
+                            result.errors.add(buildError(file, "Exception during extraction", e));
+                            result.errorCount++;
+                            result.failedFiles.add(file.getFileName());
+                        }
                     }
                 }
             }            
@@ -337,19 +395,19 @@ public class Rar5Extractor {
     /**
      * Extracts a single file from the archive.
      */
-    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result) throws Exception {
-      extractFile(file, raf, reader, outputDir, password, result, true);
+    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result, ExtractionContext ctx) throws Exception {
+      extractFile(file, raf, reader, outputDir, password, result, true, ctx);
     }
 
     /**
      * Extracts a single file from the archive.
      * @param writeOutput if false, file is decoded but not written to disk (for solid archive skip)
      */
-    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result, boolean writeOutput) throws Exception {
+    private static void extractFile(Rar5FileBlock file, RandomAccessFile raf, Rar5Reader reader, String outputDir, String password, ExtractionResult result, boolean writeOutput, ExtractionContext ctx) throws Exception {
         // Handle directories
         if (file.isDirectory()) {
             if (writeOutput) {
-                File dir = pathBuilder.buildSafeDirPath(file.getFileName());
+                File dir = ctx.pathBuilder.buildSafeDirPath(file.getFileName());
                 dir.mkdirs();
             }
             result.successCount++;
@@ -363,7 +421,7 @@ public class Rar5Extractor {
         
         if (dataSize == 0) {
             if (writeOutput) {
-                File outFile = pathBuilder.buildSafePath(file.getFileName());
+                File outFile = ctx.pathBuilder.buildSafePath(file.getFileName());
                 outFile.getParentFile().mkdirs();
                 outFile.createNewFile();
             }
@@ -436,16 +494,21 @@ public class Rar5Extractor {
             File outFile = pathBuilder.buildSafePath(file.getFileName());
             outFile.getParentFile().mkdirs();
             
-            boolean success = decompressToFile(file, decompressInput, outFile);
+            be.stef.rar5.extra.Rar5ExtraHash extraHash = file.getHash();
+            boolean needBlake2 = extraHash != null && extraHash.isBlake2sp();
+            CRC32 crcAcc = file.hasCRC() ? new CRC32() : null;
+            Blake2sp.Digest blake2Acc = needBlake2 ? new Blake2sp.Digest() : null;
+
+            boolean success = decompressToFile(file, decompressInput, outFile, crcAcc, blake2Acc, ctx);
             if (!success) {
                 result.errors.add(buildError(file, "Decompression failed", null));
                 result.errorCount++;
                 return;
             }
-            
+
             // Verify CRC32
             if (file.hasCRC()) {
-                long calculatedCRC = calculateFileCRC(outFile);
+                long calculatedCRC = crcAcc.getValue();
                 long expectedCRC = file.getCRC();
                 
                 boolean crcOk;
@@ -465,10 +528,9 @@ public class Rar5Extractor {
             }
             
             // BLAKE2sp check (if archive uses BLAKE2sp instead of / in addition to CRC32)
-            be.stef.rar5.extra.Rar5ExtraHash extraHash = file.getHash();
-            if (extraHash != null && extraHash.isBlake2sp()) {
+            if (needBlake2) {
                 try {
-                    boolean blake2ok = be.stef.rar.util.Blake2sp.verify(outFile, extraHash.getHash());
+                    boolean blake2ok = blake2Acc.matches(extraHash.getHash());
                     if (!blake2ok) {
                         System.out.println("BLAKE2sp mismatch for: " + file.getFileName());
                         outFile.delete();
@@ -480,28 +542,21 @@ public class Rar5Extractor {
                     System.err.println("Warning: BLAKE2sp verification failed: " + e.getMessage());
                 }
             }
+            //--------------
             result.successCount++;
             
         } else {
             // --- Skip mode (solid): decode without writing to disk ---
             // The stream must still be consumed to keep the decoder state
-            decompressToNull(file, decompressInput);
+            decompressToNull(file, decompressInput, ctx);
         }
     }
     
-    /**
-     * Calculates CRC32 of a file without loading it entirely in memory.
-     */
-    private static long calculateFileCRC(File file) throws IOException {
-        CRC32 crc32 = new CRC32();
-        byte[] buffer = new byte[8192];
-        try (FileInputStream fis = new FileInputStream(file)) {
-            int read;
-            while ((read = fis.read(buffer)) != -1) {
-                crc32.update(buffer, 0, read);
-            }
-        }
-        return crc32.getValue();
+    private static OutputStream wrapVerifiers(OutputStream out, CRC32 crc, Blake2sp.Digest blake2) {
+        OutputStream o = out;
+        if (crc    != null) o = new CrcOutputStream(o, crc);
+        if (blake2 != null) o = new Blake2spOutputStream(o, blake2);
+        return o;
     }    
     
     
@@ -513,7 +568,8 @@ public class Rar5Extractor {
      * @param outputFile the output file to write to
      * @return true if successful
      */
-    private static boolean decompressToFile(Rar5FileBlock file, InputStream input, File outputFile) {
+    private static boolean decompressToFile(Rar5FileBlock file, InputStream input, File outputFile,
+                                            CRC32 crc, Blake2sp.Digest blake2, ExtractionContext ctx) {
        ProgressOutputStream progressOut = null;
 
        try {
@@ -525,9 +581,10 @@ public class Rar5Extractor {
                try (FileOutputStream fos = new FileOutputStream(outputFile);
                     BufferedOutputStream bos = new BufferedOutputStream(fos, 65536)) {
                    
-                   OutputStream targetOut = showProgress
-                       ? new ProgressOutputStream(bos, unpackedSize, file.getFileName())
-                       : bos;
+                   OutputStream targetOut = wrapVerifiers(bos, crc, blake2);
+                   targetOut = showProgress
+                       ? new ProgressOutputStream(targetOut, unpackedSize, file.getFileName())
+                       : targetOut;
 
                    byte[] buffer = new byte[8192];
                    int read;
@@ -543,12 +600,10 @@ public class Rar5Extractor {
            }
 
            // All other compression methods 1 => 5
-           if (sharedDecoder == null) {
-               sharedDecoder = new Rar5LZDecoder();
-           }
-
-           if (!file.isSolid()) {
-               sharedDecoder.reset();
+           if (ctx.decoder == null) {
+               ctx.decoder = new Rar5LZDecoder();
+           } else if (!file.isSolid()) {
+               ctx.decoder.reset();
            }
 
            byte[] properties = Rar5PropertyEncoder.encodeWindowSize(
@@ -557,18 +612,20 @@ public class Rar5Extractor {
                file.isV7()
            );
 
-           sharedDecoder.setDecoderProperties(properties);
+           ctx.decoder.setDecoderProperties(properties);
 
-           try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-               OutputStream targetOut = showProgress 
-                   ? new ProgressOutputStream(fos, unpackedSize, file.getFileName()) 
-                   : fos;
+           try (FileOutputStream fos = new FileOutputStream(outputFile);
+                BufferedOutputStream bos = new BufferedOutputStream(fos, 65536)) {
+               OutputStream verifiedOut = wrapVerifiers(bos, crc, blake2);
+               OutputStream targetOut = showProgress
+                   ? new ProgressOutputStream(verifiedOut, unpackedSize, file.getFileName())
+                   : verifiedOut;
 
                if (targetOut instanceof ProgressOutputStream) {
                    progressOut = (ProgressOutputStream) targetOut;
                }
 
-               sharedDecoder.decode(input, targetOut, null, unpackedSize, null);
+               ctx.decoder.decode(input, targetOut, null, unpackedSize, null);
 
                if (progressOut != null) {
                    progressOut.finish();
@@ -611,7 +668,7 @@ public class Rar5Extractor {
      * Decompresses data from an InputStream without writing output.
      * Used for solid archives when skipping a file but needing to maintain decoder state.
      */
-    private static void decompressToNull(Rar5FileBlock file, InputStream input) {
+    private static void decompressToNull(Rar5FileBlock file, InputStream input, ExtractionContext ctx) {
         try {
             int method = file.getCompressionMethod();
             long unpackedSize = file.getUnpackedSize();
@@ -623,12 +680,10 @@ public class Rar5Extractor {
                 return;
             }
             
-            if (sharedDecoder == null) {
-                sharedDecoder = new Rar5LZDecoder();
-            }
-            
-            if (!file.isSolid()) {
-                sharedDecoder.reset();
+            if (ctx.decoder == null) {
+                ctx.decoder = new Rar5LZDecoder();
+            } else if (!file.isSolid()) {
+                ctx.decoder.reset();
             }
             
             byte[] properties = Rar5PropertyEncoder.encodeWindowSize(
@@ -637,12 +692,12 @@ public class Rar5Extractor {
                   file.isV7()
             );
             
-            sharedDecoder.setDecoderProperties(properties);
+            ctx.decoder.setDecoderProperties(properties);
             
             // Decode into an OutputStream that discards everything
             OutputStream nullOut = new NullOutputStream();
             
-            sharedDecoder.decode(input, nullOut, null, unpackedSize, null);
+            ctx.decoder.decode(input, nullOut, null, unpackedSize, null);
         } catch (Exception e) {
             System.err.println("Warning: failed to decode skipped solid file: " + file.getFileName());
         }
@@ -667,9 +722,6 @@ public class Rar5Extractor {
      * Resets the shared decoder (useful for testing).
      */
     public static void resetDecoder() {
-        if (sharedDecoder != null) {
-            sharedDecoder.reset();
-        }
     }
     
 
@@ -691,6 +743,7 @@ public class Rar5Extractor {
         System.out.println("Multi-volume archive: " + volumes.size() + " volume(s) found" + (headerEncrypted ? " (encrypted headers)" : ""));
 
         java.util.List<LogicalFile5> files = buildLogicalFiles(volumes, password, headerEncrypted, tempFiles);
+        ExtractionContext ctx = new ExtractionContext(pathBuilder);
         result.totalFiles = files.size();
 
         for (LogicalFile5 lf : files) {
@@ -708,7 +761,7 @@ public class Rar5Extractor {
 
                 if (head.isSolid() && !isTarget) {
                     // Solid set: decode the skipped file to keep the decoder state
-                    decompressToNull(head, openLogicalInput(lf, password));
+                    decompressToNull(head, openLogicalInput(lf, password), ctx);
                     continue;
                 }
                 if (!isTarget) {
@@ -730,7 +783,12 @@ public class Rar5Extractor {
                     continue;
                 }
 
-                boolean ok = decompressToFile(head, openLogicalInput(lf, password), outFile);
+                be.stef.rar5.extra.Rar5ExtraHash extraHash = head.getHash();
+                boolean needBlake2 = extraHash != null && extraHash.isBlake2sp();
+                CRC32 crcAcc = lf.hasCrc ? new CRC32() : null;
+                Blake2sp.Digest blake2Acc = needBlake2 ? new Blake2sp.Digest() : null;
+
+                boolean ok = decompressToFile(head, openLogicalInput(lf, password), outFile, crcAcc, blake2Acc, ctx);
                 if (!ok) {
                     result.errors.add(buildError(head, "Decompression failed", null));
                     result.errorCount++;
@@ -739,7 +797,7 @@ public class Rar5Extractor {
 
                 // CRC32 check (full-file CRC; last chunk wins)
                 if (lf.hasCrc) {
-                    long calculatedCRC = calculateFileCRC(outFile);
+                    long calculatedCRC = crcAcc.getValue();
                     long expectedCRC = lf.crc;
                     boolean crcOk;
                     if (head.isEncrypted() && !isEncryptedArchive) {
@@ -759,10 +817,9 @@ public class Rar5Extractor {
                 }
 
                 // BLAKE2sp check
-                be.stef.rar5.extra.Rar5ExtraHash extraHash = head.getHash();
-                if (extraHash != null && extraHash.isBlake2sp()) {
+                if (needBlake2) {
                     try {
-                        boolean blake2ok = be.stef.rar.util.Blake2sp.verify(outFile, extraHash.getHash());
+                        boolean blake2ok = blake2Acc.matches(extraHash.getHash());
                         if (!blake2ok) {
                             System.out.println("BLAKE2sp mismatch for: " + head.getFileName());
                             outFile.delete();
@@ -774,6 +831,7 @@ public class Rar5Extractor {
                         System.err.println("Warning: BLAKE2sp verification failed: " + e.getMessage());
                     }
                 }
+                //------------------------
                 
                 result.successCount++;
                 result.unpackedFiles.add(head.getFileName());

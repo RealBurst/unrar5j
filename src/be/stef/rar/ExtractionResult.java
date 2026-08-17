@@ -60,6 +60,18 @@ import java.util.List;
      }
      
      /**
+      * Merges results of a parallel sub-task. Must be called under synchronized.
+      */
+     public void merge(ExtractionResult other) {
+         successCount += other.successCount;
+         errorCount   += other.errorCount;
+         unpackedFiles.addAll(other.unpackedFiles);
+         failedFiles.addAll(other.failedFiles);
+         errors.addAll(other.errors);
+         if (other.passwordStatus > passwordStatus) passwordStatus = other.passwordStatus;
+     }
+
+     /**
       * @return true if all files were extracted successfully
       */
      public boolean isSuccess() {

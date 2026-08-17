@@ -15,6 +15,8 @@
  */
 package be.stef.rar5.decompress;
 
+import java.util.Arrays;
+
 /**
  * RAR5-specific decoding helpers that operate on a {@link Rar5BitDecoder}.
  *
@@ -51,6 +53,18 @@ public final class Rar5Utils {
     /**
      * Copies bytes for match decoding.
      *
+     * <p>Equivalent to a plain {@code for} loop copying byte by byte, but uses
+     * {@link System#arraycopy} - a JIT intrinsic - whenever that is provably
+     * identical. The byte-by-byte loop only differs from a bulk copy in one
+     * situation: source and destination are the same array and the destination
+     * runs into the region being read, so the loop replicates a repeating
+     * pattern. That case is handled by doubling the already-copied block.</p>
+     *
+     * <p>Note that {@code srcPos} may be greater than {@code destPos}: when the
+     * sliding window wraps, the match is read from the tail of the window while
+     * the destination sits near its start. The distance is therefore derived
+     * from the positions rather than from {@code offset}, which stays unused.</p>
+     *
      * @param offset  not used (kept for API compatibility)
      * @param dest    destination array
      * @param destPos destination position
@@ -60,8 +74,31 @@ public final class Rar5Utils {
      */
     public static void copyMatch(int offset, byte[] dest, int destPos, byte[] src, int srcPos, int lim) {
         int len = lim - destPos;
-        for (int i = 0; i < len; i++) {
-            dest[destPos++] = src[srcPos++];
+        if (len <= 0) {
+            return;
+        }
+
+        int dist = destPos - srcPos;
+
+        // Different arrays, source at or after destination (window wrap), or no
+        // overlap at all: a bulk copy is exactly equivalent to the byte loop.
+        if (src != dest || dist <= 0 || dist >= len) {
+            System.arraycopy(src, srcPos, dest, destPos, len);
+            return;
+        }
+
+        // Forward self-overlap: the byte loop replicates a dist-byte pattern.
+        if (dist == 1) {
+            Arrays.fill(dest, destPos, destPos + len, src[srcPos]);
+            return;
+        }
+
+        System.arraycopy(src, srcPos, dest, destPos, dist);
+        int copied = dist;
+        while (copied < len) {
+            int n = Math.min(copied, len - copied);
+            System.arraycopy(dest, destPos, dest, destPos + copied, n);
+            copied += n;
         }
     }
 

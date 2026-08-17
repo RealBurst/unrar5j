@@ -38,7 +38,7 @@ import be.stef.rar5.Rar5Constants;
  * </ul>
  * 
  * <p><b>WARNING:</b> This is the most critical component of the RAR5 decompressor.
- * The algorithms have been carefully ported and debugged. Do not modify the
+ * The algorithms have been carefully coded and debugged. Do not modify the
  * decompression logic without extensive testing on a large archive corpus.</p>
  * 
  * <h3>Usage:</h3>

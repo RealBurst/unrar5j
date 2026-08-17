@@ -27,15 +27,12 @@ package be.stef.rar5.decompress;
  *   <li>ARM (3) - For ARM executables</li>
  * </ul>
  * 
- * <p><b>Note:</b> Field names use uppercase to match the original 7-zip
- * implementation for clarity and debugging purposes.</p>
- * 
  * @author Stef
  * @since 1.0
- * @see Rar5Decoder#FILTER_DELTA
- * @see Rar5Decoder#FILTER_E8
- * @see Rar5Decoder#FILTER_E8E9
- * @see Rar5Decoder#FILTER_ARM
+ * @see Rar5Constants#FILTER_DELTA
+ * @see Rar5Constants#FILTER_E8
+ * @see Rar5Constants#FILTER_E8E9
+ * @see Rar5Constants#FILTER_ARM
  */
 public class Rar5Filter {
     public long startPos;   // Start position in the output stream

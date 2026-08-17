@@ -138,7 +138,7 @@ public class Unrar5j {
         System.out.println("                         ___");
         System.out.println("  _  _ _ _  _ _ __ _ _ _| __| (_)");
         System.out.println(" | || | ' \\| '_/ _` | '_|__ \\ | |");
-        System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v2.0.0 - 2026.06.18");
+        System.out.println(" \\__,_|_|_||_| \\__,_|_| |___//__|  v2.0.4 - 2026.08.18");
         System.out.println("    Stephane BURY - Apache 2.0  [RAR4 / RAR5]");
         System.out.println();
     }
